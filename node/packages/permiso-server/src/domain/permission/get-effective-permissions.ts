@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { EffectivePermission } from "../../types.js";
 
@@ -10,12 +10,12 @@ export async function getEffectivePermissions(
   userId: string,
   resourceId?: string,
   action?: string,
-  orgId?: string,
+  tenantId?: string,
 ): Promise<Result<EffectivePermission[]>> {
   try {
-    const effectiveOrgId = orgId || ctx.orgId;
+    const effectiveTenantId = tenantId ?? ctx.tenantId;
     const result = await ctx.repos.permission.getEffectivePermissions(
-      effectiveOrgId,
+      effectiveTenantId,
       userId,
       resourceId,
       action,

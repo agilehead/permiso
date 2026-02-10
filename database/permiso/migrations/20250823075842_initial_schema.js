@@ -1,28 +1,30 @@
 /**
+ * Initial schema for Permiso
+ *
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
 export async function up(knex) {
-  // Create organization table
-  await knex.schema.createTable("organization", (table) => {
-    table.string("id", 255).primary();
-    table.string("name", 255).notNullable();
+  // Create tenant table
+  await knex.schema.createTable("tenant", (table) => {
+    table.text("id").primary();
+    table.text("name").notNullable();
     table.text("description");
-    table.bigint("created_at").notNullable();
-    table.bigint("updated_at").notNullable();
+    table.integer("created_at").notNullable();
+    table.integer("updated_at").notNullable();
 
     // Indexes
     table.index("created_at");
     table.index("name");
   });
 
-  // Create organization_property table
-  await knex.schema.createTable("organization_property", (table) => {
-    table.string("parent_id", 255).notNullable();
-    table.string("name", 255).notNullable();
-    table.jsonb("value").notNullable();
-    table.boolean("hidden").notNullable();
-    table.bigint("created_at").notNullable();
+  // Create tenant_property table
+  await knex.schema.createTable("tenant_property", (table) => {
+    table.text("parent_id").notNullable();
+    table.text("name").notNullable();
+    table.text("value").notNullable(); // JSON stored as TEXT
+    table.integer("hidden").notNullable().defaultTo(0);
+    table.integer("created_at").notNullable();
 
     // Composite primary key
     table.primary(["parent_id", "name"]);
@@ -31,229 +33,210 @@ export async function up(knex) {
     table
       .foreign("parent_id")
       .references("id")
-      .inTable("organization")
+      .inTable("tenant")
       .onDelete("CASCADE");
 
     // Indexes
     table.index("hidden");
-    table.index(["name", "value"]);
-    table.index("value", null, "gin");
   });
 
   // Create role table
   await knex.schema.createTable("role", (table) => {
-    table.string("id", 255).notNullable();
-    table.string("org_id", 255).notNullable();
-    table.string("name", 255).notNullable();
+    table.text("id").notNullable();
+    table.text("tenant_id").notNullable();
+    table.text("name").notNullable();
     table.text("description");
-    table.bigint("created_at").notNullable();
-    table.bigint("updated_at").notNullable();
+    table.integer("created_at").notNullable();
+    table.integer("updated_at").notNullable();
 
     // Composite primary key
-    table.primary(["id", "org_id"]);
+    table.primary(["id", "tenant_id"]);
 
     // Foreign key
     table
-      .foreign("org_id")
+      .foreign("tenant_id")
       .references("id")
-      .inTable("organization")
+      .inTable("tenant")
       .onDelete("CASCADE");
 
     // Indexes
     table.index("created_at");
-    table.index("org_id");
-    table.index(["org_id", "name"]);
+    table.index("tenant_id");
+    table.index(["tenant_id", "name"]);
   });
 
   // Create role_property table
   await knex.schema.createTable("role_property", (table) => {
-    table.string("parent_id", 255).notNullable();
-    table.string("org_id", 255).notNullable();
-    table.string("name", 255).notNullable();
-    table.jsonb("value").notNullable();
-    table.boolean("hidden").notNullable();
-    table.bigint("created_at").notNullable();
+    table.text("parent_id").notNullable();
+    table.text("tenant_id").notNullable();
+    table.text("name").notNullable();
+    table.text("value").notNullable(); // JSON stored as TEXT
+    table.integer("hidden").notNullable().defaultTo(0);
+    table.integer("created_at").notNullable();
 
     // Composite primary key
-    table.primary(["parent_id", "org_id", "name"]);
+    table.primary(["parent_id", "tenant_id", "name"]);
 
     // Foreign key
     table
-      .foreign(["parent_id", "org_id"])
-      .references(["id", "org_id"])
+      .foreign(["parent_id", "tenant_id"])
+      .references(["id", "tenant_id"])
       .inTable("role")
       .onDelete("CASCADE");
 
     // Indexes
     table.index("hidden");
-    table.index(["name", "value"]);
-    table.index("value", null, "gin");
   });
 
   // Create user table
   await knex.schema.createTable("user", (table) => {
-    table.string("id", 255).notNullable();
-    table.string("org_id", 255).notNullable();
-    table.string("identity_provider", 255).notNullable();
-    table.string("identity_provider_user_id", 255).notNullable();
-    table.bigint("created_at").notNullable();
-    table.bigint("updated_at").notNullable();
+    table.text("id").notNullable();
+    table.text("tenant_id").notNullable();
+    table.text("identity_provider").notNullable();
+    table.text("identity_provider_user_id").notNullable();
+    table.integer("created_at").notNullable();
+    table.integer("updated_at").notNullable();
 
     // Composite primary key
-    table.primary(["id", "org_id"]);
+    table.primary(["id", "tenant_id"]);
 
     // Foreign key
     table
-      .foreign("org_id")
+      .foreign("tenant_id")
       .references("id")
-      .inTable("organization")
+      .inTable("tenant")
       .onDelete("CASCADE");
 
     // Indexes
     table.index("created_at");
-    table.index("org_id");
+    table.index("tenant_id");
     table.index(["identity_provider", "identity_provider_user_id"]);
   });
 
   // Create user_property table
   await knex.schema.createTable("user_property", (table) => {
-    table.string("parent_id", 255).notNullable();
-    table.string("org_id", 255).notNullable();
-    table.string("name", 255).notNullable();
-    table.jsonb("value").notNullable();
-    table.boolean("hidden").notNullable();
-    table.bigint("created_at").notNullable();
+    table.text("parent_id").notNullable();
+    table.text("tenant_id").notNullable();
+    table.text("name").notNullable();
+    table.text("value").notNullable(); // JSON stored as TEXT
+    table.integer("hidden").notNullable().defaultTo(0);
+    table.integer("created_at").notNullable();
 
     // Composite primary key
-    table.primary(["parent_id", "org_id", "name"]);
+    table.primary(["parent_id", "tenant_id", "name"]);
 
     // Foreign key
     table
-      .foreign(["parent_id", "org_id"])
-      .references(["id", "org_id"])
+      .foreign(["parent_id", "tenant_id"])
+      .references(["id", "tenant_id"])
       .inTable("user")
       .onDelete("CASCADE");
 
     // Indexes
     table.index("hidden");
-    table.index(["name", "value"]);
-    table.index("value", null, "gin");
   });
 
   // Create resource table
   await knex.schema.createTable("resource", (table) => {
-    table.string("id", 255).notNullable();
-    table.string("org_id", 255).notNullable();
-    table.string("name", 255).notNullable();
+    table.text("id").notNullable();
+    table.text("tenant_id").notNullable();
+    table.text("name");
     table.text("description");
-    table.bigint("created_at").notNullable();
-    table.bigint("updated_at").notNullable();
+    table.integer("created_at").notNullable();
+    table.integer("updated_at").notNullable();
 
     // Composite primary key
-    table.primary(["id", "org_id"]);
+    table.primary(["id", "tenant_id"]);
 
     // Foreign key
     table
-      .foreign("org_id")
+      .foreign("tenant_id")
       .references("id")
-      .inTable("organization")
+      .inTable("tenant")
       .onDelete("CASCADE");
 
     // Indexes
     table.index("created_at");
-    table.index("org_id");
-    table.index(["org_id", "name"]);
+    table.index("tenant_id");
+    table.index(["tenant_id", "name"]);
   });
 
   // Create user_role table
   await knex.schema.createTable("user_role", (table) => {
-    table.string("user_id", 255).notNullable();
-    table.string("role_id", 255).notNullable();
-    table.string("org_id", 255).notNullable();
-    table.bigint("created_at").notNullable();
+    table.text("user_id").notNullable();
+    table.text("role_id").notNullable();
+    table.text("tenant_id").notNullable();
+    table.integer("created_at").notNullable();
 
     // Composite primary key
-    table.primary(["user_id", "role_id", "org_id"]);
+    table.primary(["user_id", "role_id", "tenant_id"]);
 
     // Foreign keys
     table
-      .foreign(["user_id", "org_id"])
-      .references(["id", "org_id"])
+      .foreign(["user_id", "tenant_id"])
+      .references(["id", "tenant_id"])
       .inTable("user")
       .onDelete("CASCADE");
     table
-      .foreign(["role_id", "org_id"])
-      .references(["id", "org_id"])
+      .foreign(["role_id", "tenant_id"])
+      .references(["id", "tenant_id"])
       .inTable("role")
       .onDelete("CASCADE");
 
     // Indexes
-    table.index(["user_id", "org_id"]);
-    table.index(["role_id", "org_id"]);
+    table.index(["user_id", "tenant_id"]);
+    table.index(["role_id", "tenant_id"]);
   });
 
   // Create user_permission table
   await knex.schema.createTable("user_permission", (table) => {
-    table.string("user_id", 255).notNullable();
-    table.string("org_id", 255).notNullable();
-    table.string("resource_id", 255).notNullable();
-    table.string("action", 255).notNullable();
-    table.bigint("created_at").notNullable();
+    table.text("user_id").notNullable();
+    table.text("tenant_id").notNullable();
+    table.text("resource_id").notNullable();
+    table.text("action").notNullable();
+    table.integer("created_at").notNullable();
 
     // Composite primary key
-    table.primary(["user_id", "org_id", "resource_id", "action"]);
+    table.primary(["user_id", "tenant_id", "resource_id", "action"]);
 
     // Foreign keys
     table
-      .foreign(["user_id", "org_id"])
-      .references(["id", "org_id"])
+      .foreign(["user_id", "tenant_id"])
+      .references(["id", "tenant_id"])
       .inTable("user")
       .onDelete("CASCADE");
-    table
-      .foreign(["resource_id", "org_id"])
-      .references(["id", "org_id"])
-      .inTable("resource")
-      .onDelete("CASCADE");
+    // Note: resource_id foreign key removed to allow wildcard patterns like "/india/*"
 
     // Indexes
-    table.index(["user_id", "org_id"]);
-    table.index(["resource_id", "org_id"]);
+    table.index(["user_id", "tenant_id"]);
+    table.index(["resource_id", "tenant_id"]);
     table.index("action");
   });
 
   // Create role_permission table
   await knex.schema.createTable("role_permission", (table) => {
-    table.string("role_id", 255).notNullable();
-    table.string("org_id", 255).notNullable();
-    table.string("resource_id", 255).notNullable();
-    table.string("action", 255).notNullable();
-    table.bigint("created_at").notNullable();
+    table.text("role_id").notNullable();
+    table.text("tenant_id").notNullable();
+    table.text("resource_id").notNullable();
+    table.text("action").notNullable();
+    table.integer("created_at").notNullable();
 
     // Composite primary key
-    table.primary(["role_id", "org_id", "resource_id", "action"]);
+    table.primary(["role_id", "tenant_id", "resource_id", "action"]);
 
     // Foreign keys
     table
-      .foreign(["role_id", "org_id"])
-      .references(["id", "org_id"])
+      .foreign(["role_id", "tenant_id"])
+      .references(["id", "tenant_id"])
       .inTable("role")
       .onDelete("CASCADE");
-    table
-      .foreign(["resource_id", "org_id"])
-      .references(["id", "org_id"])
-      .inTable("resource")
-      .onDelete("CASCADE");
+    // Note: resource_id foreign key removed to allow wildcard patterns like "/india/*"
 
     // Indexes
-    table.index(["role_id", "org_id"]);
-    table.index(["resource_id", "org_id"]);
+    table.index(["role_id", "tenant_id"]);
+    table.index(["resource_id", "tenant_id"]);
     table.index("action");
   });
-
-  // Add the special text_pattern_ops index for resource.id
-  await knex.raw(
-    'CREATE INDEX "resource_id text_pattern_ops_index" ON "resource" ("id" text_pattern_ops)',
-  );
 }
 
 /**
@@ -270,6 +253,6 @@ export async function down(knex) {
   await knex.schema.dropTableIfExists("user");
   await knex.schema.dropTableIfExists("role_property");
   await knex.schema.dropTableIfExists("role");
-  await knex.schema.dropTableIfExists("organization_property");
-  await knex.schema.dropTableIfExists("organization");
+  await knex.schema.dropTableIfExists("tenant_property");
+  await knex.schema.dropTableIfExists("tenant");
 }

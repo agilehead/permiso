@@ -31,14 +31,14 @@ export const failure = <E = Error>(error: E): Failure<E> => ({
  * Type guard to check if a Result is successful
  */
 export function isSuccess<T, E>(result: Result<T, E>): result is Success<T> {
-  return result.success === true;
+  return result.success;
 }
 
 /**
  * Type guard to check if a Result is a failure
  */
 export function isFailure<T, E>(result: Result<T, E>): result is Failure<E> {
-  return result.success === false;
+  return !result.success;
 }
 
 /**
@@ -48,7 +48,7 @@ export function unwrap<T, E>(result: Result<T, E>): T {
   if (result.success) {
     return result.data;
   }
-  throw result.error;
+  throw new Error(String(result.error));
 }
 
 /**

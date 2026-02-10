@@ -1,5 +1,6 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
+import { config } from "../config.js";
 
 const logger = createLogger("BearerAuth");
 
@@ -9,8 +10,8 @@ export type BearerAuthConfig = {
 };
 
 export function getBearerAuthConfig(): BearerAuthConfig {
-  const token = process.env.PERMISO_API_KEY;
-  const enabled = process.env.PERMISO_API_KEY_ENABLED === "true" || !!token;
+  const token = config.apiKey.key;
+  const enabled = config.apiKey.enabled || token !== undefined;
 
   return {
     enabled,
@@ -21,7 +22,7 @@ export function getBearerAuthConfig(): BearerAuthConfig {
 export function extractBearerToken(
   authHeader: string | undefined,
 ): string | undefined {
-  if (!authHeader) {
+  if (authHeader === undefined) {
     return undefined;
   }
 
@@ -34,13 +35,13 @@ export function extractBearerToken(
 
 export function validateBearerToken(
   authHeader: string | undefined,
-  config: BearerAuthConfig,
-): Result<void, Error> {
-  if (!config.enabled) {
+  bearerConfig: BearerAuthConfig,
+): Result<void> {
+  if (!bearerConfig.enabled) {
     return { success: true, data: undefined };
   }
 
-  if (!config.token) {
+  if (bearerConfig.token === undefined) {
     logger.error(
       "Bearer authentication is enabled but PERMISO_API_KEY is not set",
     );
@@ -54,14 +55,14 @@ export function validateBearerToken(
 
   const token = extractBearerToken(authHeader);
 
-  if (!token) {
+  if (token === undefined) {
     return {
       success: false,
       error: new Error("Bearer token required but not provided"),
     };
   }
 
-  if (token !== config.token) {
+  if (token !== bearerConfig.token) {
     return {
       success: false,
       error: new Error("Invalid Bearer token"),

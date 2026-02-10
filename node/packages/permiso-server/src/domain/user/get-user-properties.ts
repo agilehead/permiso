@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { Property } from "../../types.js";
 
@@ -8,10 +8,10 @@ const logger = createLogger("permiso-server:users");
 export async function getUserProperties(
   ctx: DataContext,
   userId: string,
-  includeHidden: boolean = true,
+  includeHidden = true,
 ): Promise<Result<Property[]>> {
   try {
-    const result = await ctx.repos.user.getProperties(ctx.orgId, userId);
+    const result = await ctx.repos.user.getProperties(ctx.tenantId, userId);
     if (!result.success) {
       return result;
     }

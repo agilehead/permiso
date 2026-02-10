@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { UserRole } from "../../types.js";
 
@@ -11,7 +11,7 @@ export async function assignUserRole(
   roleId: string,
 ): Promise<Result<UserRole>> {
   try {
-    const result = await ctx.repos.user.assignRole(ctx.orgId, userId, roleId);
+    const result = await ctx.repos.user.assignRole(ctx.tenantId, userId, roleId);
     if (!result.success) {
       return { success: false, error: result.error };
     }
@@ -22,7 +22,7 @@ export async function assignUserRole(
       data: {
         userId,
         roleId,
-        orgId: ctx.orgId,
+        tenantId: ctx.tenantId,
         createdAt: Date.now(),
       },
     };

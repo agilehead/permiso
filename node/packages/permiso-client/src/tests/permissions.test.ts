@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { createOrganization } from "../api/organizations.js";
+import { createTenant } from "../api/tenants.js";
 import { createUser, assignUserRole } from "../api/users.js";
 import { createRole } from "../api/roles.js";
 import { createResource } from "../api/resources.js";
@@ -19,23 +19,23 @@ import "./setup.js";
 
 describe("Permissions API", () => {
   let config: ReturnType<typeof getTestConfig>;
-  let testOrgId: string;
+  let testTenantId: string;
   let testUserId: string;
   let testRoleId: string;
   let testResourceId: string;
 
   beforeEach(async () => {
-    // Create test organization
-    testOrgId = generateTestId("org");
-    const rootConfig = getTestConfig(); // ROOT context to create org
-    const orgResult = await createOrganization(rootConfig, {
-      id: testOrgId,
-      name: "Test Organization",
+    // Create test tenant
+    testTenantId = generateTestId("tenant");
+    const rootConfig = getTestConfig(); // ROOT context to create tenant
+    const tenantResult = await createTenant(rootConfig, {
+      id: testTenantId,
+      name: "Test Tenant",
     });
-    expect(orgResult.success).to.be.true;
+    expect(tenantResult.success).to.be.true;
 
-    // Update config with the test org ID for subsequent operations
-    config = { ...rootConfig, orgId: testOrgId };
+    // Update config with the test tenant ID for subsequent operations
+    config = { ...rootConfig, tenantId: testTenantId };
 
     // Create test user
     testUserId = generateTestId("user");

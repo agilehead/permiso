@@ -1,6 +1,6 @@
 import { updateRole } from "../../domain/role/update-role.js";
 import { getRole } from "./get-role.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 import type { UpdateRoleInput } from "../../generated/graphql.js";
 
 // Re-export domain function

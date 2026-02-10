@@ -1,5 +1,5 @@
 import { deleteRoleProperty } from "../../domain/role/delete-role-property.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 // Re-export domain function
 export { deleteRoleProperty };

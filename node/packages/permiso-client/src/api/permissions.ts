@@ -1,5 +1,5 @@
 import { graphqlRequest } from "../http-client.js";
-import { Result, PermisoConfig } from "../types.js";
+import type { Result, PermisoConfig } from "../types.js";
 import { buildHeaders } from "./utils.js";
 import type {
   UserPermission,
@@ -19,7 +19,7 @@ export async function hasPermission(
     resourceId: string;
     action: string;
   },
-): Promise<Result<boolean, Error>> {
+): Promise<Result<boolean>> {
   const query = `
     query HasPermission(
       $userId: ID!,
@@ -60,7 +60,7 @@ export async function getUserPermissions(
     resourceId?: string;
     action?: string;
   },
-): Promise<Result<UserPermission[], Error>> {
+): Promise<Result<UserPermission[]>> {
   const query = `
     query GetUserPermissions(
       $userId: ID!,
@@ -116,7 +116,7 @@ export async function getRolePermissions(
     resourceId?: string;
     action?: string;
   },
-): Promise<Result<RolePermission[], Error>> {
+): Promise<Result<RolePermission[]>> {
   const query = `
     query GetRolePermissions(
       $roleId: ID!,
@@ -172,7 +172,7 @@ export async function getEffectivePermissions(
     resourceId: string;
     action?: string;
   },
-): Promise<Result<EffectivePermission[], Error>> {
+): Promise<Result<EffectivePermission[]>> {
   const query = `
     query GetEffectivePermissions(
       $userId: ID!,
@@ -221,7 +221,7 @@ export async function getEffectivePermissionsByPrefix(
     resourceIdPrefix: string;
     action?: string;
   },
-): Promise<Result<EffectivePermission[], Error>> {
+): Promise<Result<EffectivePermission[]>> {
   const query = `
     query GetEffectivePermissionsByPrefix(
       $userId: ID!,
@@ -266,7 +266,7 @@ export async function getEffectivePermissionsByPrefix(
 export async function grantUserPermission(
   config: PermisoConfig,
   input: GrantUserPermissionInput,
-): Promise<Result<UserPermission, Error>> {
+): Promise<Result<UserPermission>> {
   const mutation = `
     mutation GrantUserPermission($input: GrantUserPermissionInput!) {
       grantUserPermission(input: $input) {
@@ -314,7 +314,7 @@ export async function revokeUserPermission(
     resourceId: string;
     action: string;
   },
-): Promise<Result<boolean, Error>> {
+): Promise<Result<boolean>> {
   const mutation = `
     mutation RevokeUserPermission(
       $userId: ID!,
@@ -351,7 +351,7 @@ export async function revokeUserPermission(
 export async function grantRolePermission(
   config: PermisoConfig,
   input: GrantRolePermissionInput,
-): Promise<Result<RolePermission, Error>> {
+): Promise<Result<RolePermission>> {
   const mutation = `
     mutation GrantRolePermission($input: GrantRolePermissionInput!) {
       grantRolePermission(input: $input) {
@@ -399,7 +399,7 @@ export async function revokeRolePermission(
     resourceId: string;
     action: string;
   },
-): Promise<Result<boolean, Error>> {
+): Promise<Result<boolean>> {
   const mutation = `
     mutation RevokeRolePermission(
       $roleId: ID!,

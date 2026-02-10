@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { createOrganization } from "../api/organizations.js";
+import { createTenant } from "../api/tenants.js";
 import {
   createResource,
   getResource,
@@ -13,20 +13,20 @@ import "./setup.js";
 
 describe("Resources API", () => {
   let config: ReturnType<typeof getTestConfig>;
-  let testOrgId: string;
+  let testTenantId: string;
 
   beforeEach(async () => {
-    // Create a test organization for each test
-    testOrgId = generateTestId("org");
-    const rootConfig = getTestConfig(); // ROOT context to create org
-    const orgResult = await createOrganization(rootConfig, {
-      id: testOrgId,
-      name: "Test Organization",
+    // Create a test tenant for each test
+    testTenantId = generateTestId("tenant");
+    const rootConfig = getTestConfig(); // ROOT context to create tenant
+    const tenantResult = await createTenant(rootConfig, {
+      id: testTenantId,
+      name: "Test Tenant",
     });
-    expect(orgResult.success).to.be.true;
+    expect(tenantResult.success).to.be.true;
 
-    // Update config with the test org ID for subsequent operations
-    config = { ...rootConfig, orgId: testOrgId };
+    // Update config with the test tenant ID for subsequent operations
+    config = { ...rootConfig, tenantId: testTenantId };
   });
 
   describe("createResource", () => {
@@ -41,7 +41,7 @@ describe("Resources API", () => {
       expect(result.success).to.be.true;
       if (result.success) {
         expect(result.data.id).to.equal(resourceId);
-        expect(result.data.orgId).to.equal(testOrgId);
+        expect(result.data.tenantId).to.equal(testTenantId);
         expect(result.data.name).to.equal("User API");
         expect(result.data.description).to.equal(
           "All user-related API endpoints",
@@ -129,11 +129,11 @@ describe("Resources API", () => {
       // Create multiple resources
       const resourceIds = [];
       for (let i = 0; i < 5; i++) {
-        const resourceId = `/api/resource${i}/*`;
+        const resourceId = `/api/resource${String(i)}/*`;
         resourceIds.push(resourceId);
         const result = await createResource(config, {
           id: resourceId,
-          name: `Resource ${i}`,
+          name: `Resource ${String(i)}`,
         });
         expect(result.success).to.be.true;
       }

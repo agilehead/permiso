@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { RoleWithProperties, Property } from "../../types.js";
 
@@ -9,22 +9,22 @@ export async function getRoles(
   ctx: DataContext,
   filters?: {
     ids?: string[];
-    properties?: Array<{ name: string; value: unknown }>;
+    properties?: { name: string; value: unknown }[];
   },
   pagination?: {
     limit?: number;
     offset?: number;
     sortDirection?: "ASC" | "DESC";
   },
-  orgId?: string,
+  tenantId?: string,
 ): Promise<Result<RoleWithProperties[]>> {
   try {
-    // Use explicit orgId if provided, otherwise fall back to ctx.orgId
-    const effectiveOrgId = orgId || ctx.orgId;
+    // Use explicit tenantId if provided, otherwise fall back to ctx.tenantId
+    const effectiveTenantId = tenantId ?? ctx.tenantId;
 
     // Get roles from repository
     const listResult = await ctx.repos.role.list(
-      effectiveOrgId,
+      effectiveTenantId,
       undefined,
       pagination
         ? {
@@ -51,7 +51,7 @@ export async function getRoles(
     const result = await Promise.all(
       roles.map(async (role) => {
         const propertiesResult = await ctx.repos.role.getProperties(
-          effectiveOrgId,
+          effectiveTenantId,
           role.id,
         );
 
@@ -73,17 +73,17 @@ export async function getRoles(
 
         return {
           id: role.id,
-          orgId: role.orgId,
+          tenantId: role.tenantId,
           name: role.name,
           description: role.description,
           createdAt: role.createdAt,
           updatedAt: role.updatedAt,
-          properties: properties.reduce(
+          properties: properties.reduce<Record<string, unknown>>(
             (acc: Record<string, unknown>, prop: Property) => {
               acc[prop.name] = prop.value;
               return acc;
             },
-            {} as Record<string, unknown>,
+            {},
           ),
         };
       }),

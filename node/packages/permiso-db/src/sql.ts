@@ -1,6 +1,6 @@
-export function insert<T extends Record<string, unknown>>(
+export function insert(
   tableName: string,
-  params: T,
+  params: Record<string, unknown>,
 ): string {
   const columns = Object.keys(params);
   const values = columns.map((col) => `$(${col})`);
@@ -8,9 +8,9 @@ export function insert<T extends Record<string, unknown>>(
   return `INSERT INTO ${tableName} (${columns.join(", ")}) VALUES (${values.join(", ")})`;
 }
 
-export function update<T extends Record<string, unknown>>(
+export function update(
   tableName: string,
-  params: T,
+  params: Record<string, unknown>,
 ): string {
   const setClause = Object.keys(params).map((col) => `${col} = $(${col})`);
 

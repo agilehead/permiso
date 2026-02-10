@@ -19,7 +19,7 @@ export { success, failure } from "./types.js";
 // Export generated types
 export type {
   // Core entities
-  Organization,
+  Tenant,
   User,
   Role,
   Resource,
@@ -32,8 +32,8 @@ export type {
   EffectivePermission,
 
   // Input types
-  CreateOrganizationInput,
-  UpdateOrganizationInput,
+  CreateTenantInput,
+  UpdateTenantInput,
   CreateUserInput,
   UpdateUserInput,
   CreateRoleInput,
@@ -45,7 +45,7 @@ export type {
   GrantRolePermissionInput,
 
   // Filter types
-  OrganizationFilter,
+  TenantFilter,
   UserFilter,
   RoleFilter,
   ResourceFilter,
@@ -56,25 +56,25 @@ export type {
   SortDirection,
 
   // Connection types
-  OrganizationConnection,
+  TenantConnection,
   UserConnection,
   RoleConnection,
   ResourceConnection,
   PageInfo,
 } from "./generated/types.js";
 
-// Export organization APIs
+// Export tenant APIs
 export {
-  getOrganization,
-  listOrganizations,
-  getOrganizationsByIds,
-  createOrganization,
-  updateOrganization,
-  deleteOrganization,
-  getOrganizationProperty,
-  setOrganizationProperty,
-  deleteOrganizationProperty,
-} from "./api/organizations.js";
+  getTenant,
+  listTenants,
+  getTenantsByIds,
+  createTenant,
+  updateTenant,
+  deleteTenant,
+  getTenantProperty,
+  setTenantProperty,
+  deleteTenantProperty,
+} from "./api/tenants.js";
 
 // Export user APIs
 export {

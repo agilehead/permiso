@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { User } from "../../repositories/interfaces/index.js";
 import type { CreateUserInput } from "../../generated/graphql.js";
@@ -11,7 +11,7 @@ export async function createUser(
   input: CreateUserInput,
 ): Promise<Result<User>> {
   try {
-    const result = await ctx.repos.user.create(ctx.orgId, {
+    const result = await ctx.repos.user.create(ctx.tenantId, {
       id: input.id,
       identityProvider: input.identityProvider,
       identityProviderUserId: input.identityProviderUserId,

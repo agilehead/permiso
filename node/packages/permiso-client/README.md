@@ -23,7 +23,7 @@ npm install @codespin/permiso-client
 
 ```typescript
 import {
-  createOrganization,
+  createTenant,
   createUser,
   assignUserRole,
   hasPermission,
@@ -37,20 +37,20 @@ const config: PermisoConfig = {
   timeout: 30000, // optional, in milliseconds
 };
 
-// Create an organization
-const orgResult = await createOrganization(config, {
+// Create a tenant
+const tenantResult = await createTenant(config, {
   id: "acme-corp",
   name: "ACME Corporation",
-  description: "A sample organization",
+  description: "A sample tenant",
 });
 
-if (orgResult.success) {
-  console.log("Created organization:", orgResult.data);
+if (tenantResult.success) {
+  console.log("Created tenant:", tenantResult.data);
 }
 
 // Check if a user has permission
 const hasPermResult = await hasPermission(config, {
-  orgId: "acme-corp",
+  tenantId: "acme-corp",
   userId: "john-doe",
   resourceId: "/api/users/*",
   action: "read",
@@ -96,7 +96,7 @@ All functions return a `Result` type that explicitly handles success and failure
 ```typescript
 const result = await createUser(config, {
   id: "john-doe",
-  orgId: "acme-corp",
+  tenantId: "acme-corp",
   identityProvider: "google",
   identityProviderUserId: "john@example.com",
 });
@@ -112,53 +112,53 @@ if (result.success) {
 
 ## API Reference
 
-### Organizations
+### Tenants
 
-- `getOrganization(config, id)` - Get an organization by ID
-- `listOrganizations(config, options?)` - List organizations with optional filtering and pagination
-- `getOrganizationsByIds(config, ids)` - Get multiple organizations by IDs
-- `createOrganization(config, input)` - Create a new organization
-- `updateOrganization(config, id, input)` - Update an organization
-- `deleteOrganization(config, id, safetyKey?)` - Delete an organization
-- `getOrganizationProperty(config, orgId, propertyName)` - Get a specific property
-- `setOrganizationProperty(config, orgId, name, value, hidden?)` - Set a property
-- `deleteOrganizationProperty(config, orgId, name)` - Delete a property
+- `getTenant(config, id)` - Get a tenant by ID
+- `listTenants(config, options?)` - List tenants with optional filtering and pagination
+- `getTenantsByIds(config, ids)` - Get multiple tenants by IDs
+- `createTenant(config, input)` - Create a new tenant
+- `updateTenant(config, id, input)` - Update a tenant
+- `deleteTenant(config, id, safetyKey?)` - Delete a tenant
+- `getTenantProperty(config, tenantId, propertyName)` - Get a specific property
+- `setTenantProperty(config, tenantId, name, value, hidden?)` - Set a property
+- `deleteTenantProperty(config, tenantId, name)` - Delete a property
 
 ### Users
 
-- `getUser(config, orgId, userId)` - Get a user
-- `listUsers(config, orgId, options?)` - List users with optional filtering and pagination
-- `getUsersByIds(config, orgId, ids)` - Get multiple users by IDs
+- `getUser(config, tenantId, userId)` - Get a user
+- `listUsers(config, tenantId, options?)` - List users with optional filtering and pagination
+- `getUsersByIds(config, tenantId, ids)` - Get multiple users by IDs
 - `getUsersByIdentity(config, identityProvider, identityProviderUserId)` - Find users by identity
 - `createUser(config, input)` - Create a new user
-- `updateUser(config, orgId, userId, input)` - Update a user
-- `deleteUser(config, orgId, userId)` - Delete a user
-- `getUserProperty(config, orgId, userId, propertyName)` - Get a user property
-- `setUserProperty(config, orgId, userId, name, value, hidden?)` - Set a user property
-- `deleteUserProperty(config, orgId, userId, name)` - Delete a user property
-- `assignUserRole(config, orgId, userId, roleId)` - Assign a role to a user
-- `unassignUserRole(config, orgId, userId, roleId)` - Remove a role from a user
+- `updateUser(config, tenantId, userId, input)` - Update a user
+- `deleteUser(config, tenantId, userId)` - Delete a user
+- `getUserProperty(config, tenantId, userId, propertyName)` - Get a user property
+- `setUserProperty(config, tenantId, userId, name, value, hidden?)` - Set a user property
+- `deleteUserProperty(config, tenantId, userId, name)` - Delete a user property
+- `assignUserRole(config, tenantId, userId, roleId)` - Assign a role to a user
+- `unassignUserRole(config, tenantId, userId, roleId)` - Remove a role from a user
 
 ### Roles
 
-- `getRole(config, orgId, roleId)` - Get a role
-- `listRoles(config, orgId, options?)` - List roles with optional filtering and pagination
-- `getRolesByIds(config, orgId, ids)` - Get multiple roles by IDs
+- `getRole(config, tenantId, roleId)` - Get a role
+- `listRoles(config, tenantId, options?)` - List roles with optional filtering and pagination
+- `getRolesByIds(config, tenantId, ids)` - Get multiple roles by IDs
 - `createRole(config, input)` - Create a new role
-- `updateRole(config, orgId, roleId, input)` - Update a role
-- `deleteRole(config, orgId, roleId)` - Delete a role
-- `getRoleProperty(config, orgId, roleId, propertyName)` - Get a role property
-- `setRoleProperty(config, orgId, roleId, name, value, hidden?)` - Set a role property
-- `deleteRoleProperty(config, orgId, roleId, name)` - Delete a role property
+- `updateRole(config, tenantId, roleId, input)` - Update a role
+- `deleteRole(config, tenantId, roleId)` - Delete a role
+- `getRoleProperty(config, tenantId, roleId, propertyName)` - Get a role property
+- `setRoleProperty(config, tenantId, roleId, name, value, hidden?)` - Set a role property
+- `deleteRoleProperty(config, tenantId, roleId, name)` - Delete a role property
 
 ### Resources
 
-- `getResource(config, orgId, resourceId)` - Get a resource
-- `listResources(config, orgId, options?)` - List resources with optional filtering and pagination
-- `getResourcesByIdPrefix(config, orgId, idPrefix)` - Get resources by ID prefix
+- `getResource(config, tenantId, resourceId)` - Get a resource
+- `listResources(config, tenantId, options?)` - List resources with optional filtering and pagination
+- `getResourcesByIdPrefix(config, tenantId, idPrefix)` - Get resources by ID prefix
 - `createResource(config, input)` - Create a new resource
-- `updateResource(config, orgId, resourceId, input)` - Update a resource
-- `deleteResource(config, orgId, resourceId)` - Delete a resource
+- `updateResource(config, tenantId, resourceId, input)` - Update a resource
+- `deleteResource(config, tenantId, resourceId)` - Delete a resource
 
 ### Permissions
 
@@ -258,19 +258,19 @@ For better performance when creating multiple entities:
 const users = [
   {
     id: "user-1",
-    orgId: "org-1",
+    tenantId: "tenant-1",
     identityProvider: "auth0",
     identityProviderUserId: "auth0|123",
   },
   {
     id: "user-2",
-    orgId: "org-1",
+    tenantId: "tenant-1",
     identityProvider: "auth0",
     identityProviderUserId: "auth0|456",
   },
   {
     id: "user-3",
-    orgId: "org-1",
+    tenantId: "tenant-1",
     identityProvider: "auth0",
     identityProviderUserId: "auth0|789",
   },
@@ -291,7 +291,7 @@ if (failed.length > 0) {
 ```typescript
 // Check single permission
 const canRead = await hasPermission(config, {
-  orgId: "acme-corp",
+  tenantId: "acme-corp",
   userId: "john-doe",
   resourceId: "/api/users/*",
   action: "read",
@@ -300,19 +300,19 @@ const canRead = await hasPermission(config, {
 // Check multiple permissions
 const permissions = await Promise.all([
   hasPermission(config, {
-    orgId,
+    tenantId,
     userId,
     resourceId: "/api/users/*",
     action: "read",
   }),
   hasPermission(config, {
-    orgId,
+    tenantId,
     userId,
     resourceId: "/api/users/*",
     action: "write",
   }),
   hasPermission(config, {
-    orgId,
+    tenantId,
     userId,
     resourceId: "/api/billing/*",
     action: "read",
@@ -325,7 +325,7 @@ const [canReadUsers, canWriteUsers, canReadBilling] = permissions.map(
 
 // Get all effective permissions for a user
 const effectivePerms = await getEffectivePermissions(config, {
-  orgId: "acme-corp",
+  tenantId: "acme-corp",
   userId: "john-doe",
 });
 
@@ -351,28 +351,28 @@ Permiso uses Unix-like path patterns for resources:
 // Exact match
 const resource1 = await createResource(config, {
   id: "/api/users",
-  orgId: "acme-corp",
+  tenantId: "acme-corp",
   description: "User management API",
 });
 
 // Wildcard match (matches any sub-path)
 const resource2 = await createResource(config, {
   id: "/api/users/*",
-  orgId: "acme-corp",
+  tenantId: "acme-corp",
   description: "All user endpoints",
 });
 
 // Specific endpoint
 const resource3 = await createResource(config, {
   id: "/api/users/profile",
-  orgId: "acme-corp",
+  tenantId: "acme-corp",
   description: "User profile endpoint",
 });
 
 // Hierarchical resources
 const resource4 = await createResource(config, {
   id: "/api/billing/invoices/*",
-  orgId: "acme-corp",
+  tenantId: "acme-corp",
   description: "Invoice management",
 });
 ```
@@ -381,13 +381,13 @@ const resource4 = await createResource(config, {
 
 ```typescript
 // Fetch all users page by page
-async function getAllUsers(config: PermisoConfig, orgId: string) {
+async function getAllUsers(config: PermisoConfig, tenantId: string) {
   const allUsers = [];
   let offset = 0;
   const limit = 50;
 
   while (true) {
-    const result = await listUsers(config, orgId, {
+    const result = await listUsers(config, tenantId, {
       pagination: { limit, offset },
     });
 
@@ -415,7 +415,7 @@ The client exports all TypeScript types from the Permiso API:
 ```typescript
 import type {
   // Core entities
-  Organization,
+  Tenant,
   User,
   Role,
   Resource,
@@ -423,11 +423,11 @@ import type {
   Property,
 
   // Input types
-  CreateOrganizationInput,
+  CreateTenantInput,
   CreateUserInput,
   CreateRoleInput,
   CreateResourceInput,
-  UpdateOrganizationInput,
+  UpdateTenantInput,
   UpdateUserInput,
   UpdateRoleInput,
 
@@ -515,7 +515,7 @@ function isUserPreferences(value: unknown): value is UserPreferences {
 }
 
 // Usage
-const prefResult = await getUserProperty(config, orgId, userId, "preferences");
+const prefResult = await getUserProperty(config, tenantId, userId, "preferences");
 if (prefResult.success && prefResult.data) {
   const value = prefResult.data.value;
   if (isUserPreferences(value)) {
@@ -618,7 +618,7 @@ const query = `
   mutation CreateUser($input: CreateUserInput!) {
     createUser(input: $input) {
       id
-      orgId
+      tenantId
     }
   }
 `;
@@ -627,7 +627,7 @@ const result = await graphqlClient.request(query, { input: userData });
 // After (Client)
 const result = await createUser(config, userData);
 if (result.success) {
-  console.log(result.data.id, result.data.orgId);
+  console.log(result.data.id, result.data.tenantId);
 }
 ```
 
@@ -642,14 +642,14 @@ The client package includes comprehensive integration tests that verify all API 
 npm run test:client
 
 # Run specific test suite
-npm run test:client:grep -- "Organizations"
+npm run test:client:grep -- "Tenants"
 ```
 
 ### Test Coverage
 
 The test suite covers all API operations:
 
-- **Organizations** (12 tests): CRUD, properties, pagination
+- **Tenants** (12 tests): CRUD, properties, pagination
 - **Users** (11 tests): CRUD, role assignment, properties, search
 - **Roles** (13 tests): CRUD, hidden properties, filtering
 - **Resources** (13 tests): CRUD, wildcards, hierarchical paths

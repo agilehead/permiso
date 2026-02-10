@@ -11,7 +11,7 @@ import {
   executeDelete,
 } from "@tinqerjs/better-sqlite3-adapter";
 import type { Database } from "better-sqlite3";
-import { schema } from "../tinqer-schema.js";
+import { schema } from "./tinqer-schema.js";
 import {
   normalizeDbError,
   type IResourceRepository,
@@ -28,7 +28,7 @@ const logger = createLogger("permiso-server:repos:sqlite:resource");
 
 function mapResourceFromDb(row: {
   id: string;
-  org_id: string;
+  tenant_id: string;
   name: string | null;
   description: string | null;
   created_at: number;
@@ -36,7 +36,7 @@ function mapResourceFromDb(row: {
 }): Resource {
   return {
     id: row.id,
-    orgId: row.org_id,
+    tenantId: row.tenant_id,
     name: row.name,
     description: row.description,
     createdAt: row.created_at,
@@ -46,11 +46,12 @@ function mapResourceFromDb(row: {
 
 export function createResourceRepository(
   db: Database,
-  _orgId: string,
+  _tenantId: string,
 ): IResourceRepository {
   return {
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async create(
-      inputOrgId: string,
+      inputTenantId: string,
       input: CreateResourceInput,
     ): Promise<Result<Resource>> {
       try {
@@ -63,7 +64,7 @@ export function createResourceRepository(
             q,
             p: {
               id: string;
-              org_id: string;
+              tenant_id: string;
               name: string | null;
               description: string | null;
               created_at: number;
@@ -72,7 +73,7 @@ export function createResourceRepository(
           ) =>
             q.insertInto("resource").values({
               id: p.id,
-              org_id: p.org_id,
+              tenant_id: p.tenant_id,
               name: p.name,
               description: p.description,
               created_at: p.created_at,
@@ -80,7 +81,7 @@ export function createResourceRepository(
             }),
           {
             id: input.id,
-            org_id: inputOrgId,
+            tenant_id: inputTenantId,
             name: input.name ?? null,
             description: input.description ?? null,
             created_at: now,
@@ -92,14 +93,14 @@ export function createResourceRepository(
         const rows = executeSelect(
           db,
           schema,
-          (q, p: { id: string; org_id: string }) =>
+          (q, p: { id: string; tenant_id: string }) =>
             q
               .from("resource")
-              .where((r) => r.id === p.id && r.org_id === p.org_id),
-          { id: input.id, org_id: inputOrgId },
+              .where((r) => r.id === p.id && r.tenant_id === p.tenant_id),
+          { id: input.id, tenant_id: inputTenantId },
         );
 
-        if (!rows[0]) {
+        if (rows.length === 0) {
           return {
             success: false,
             error: new Error("Resource not found after creation"),
@@ -113,23 +114,24 @@ export function createResourceRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async getById(
-      inputOrgId: string,
+      inputTenantId: string,
       resourceId: string,
     ): Promise<Result<Resource | null>> {
       try {
         const rows = executeSelect(
           db,
           schema,
-          (q, p: { resourceId: string; orgId: string }) =>
+          (q, p: { resourceId: string; tenantId: string }) =>
             q
               .from("resource")
-              .where((r) => r.id === p.resourceId && r.org_id === p.orgId),
-          { resourceId, orgId: inputOrgId },
+              .where((r) => r.id === p.resourceId && r.tenant_id === p.tenantId),
+          { resourceId, tenantId: inputTenantId },
         );
         return {
           success: true,
-          data: rows[0] ? mapResourceFromDb(rows[0]) : null,
+          data: rows.length > 0 ? mapResourceFromDb(rows[0]) : null,
         };
       } catch (error) {
         logger.error("Failed to get resource", { error, resourceId });
@@ -137,43 +139,48 @@ export function createResourceRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async list(
-      inputOrgId: string,
+      inputTenantId: string,
       filter?: ResourceFilter,
       pagination?: PaginationInput,
     ): Promise<Result<Connection<Resource>>> {
       try {
         // Count and list with raw SQL for LIKE support
+        const idPrefix = filter?.idPrefix;
+        const hasIdPrefix = idPrefix !== undefined && idPrefix !== "";
         const countStmt = db.prepare(
-          filter?.idPrefix
-            ? `SELECT COUNT(*) as count FROM resource WHERE org_id = @orgId AND id LIKE @idPrefix`
-            : `SELECT COUNT(*) as count FROM resource WHERE org_id = @orgId`,
+          hasIdPrefix
+            ? `SELECT COUNT(*) as count FROM resource WHERE tenant_id = @tenantId AND id LIKE @idPrefix`
+            : `SELECT COUNT(*) as count FROM resource WHERE tenant_id = @tenantId`,
         );
         const countResult = countStmt.get({
-          orgId: inputOrgId,
-          ...(filter?.idPrefix ? { idPrefix: `${filter.idPrefix}%` } : {}),
+          tenantId: inputTenantId,
+          ...(hasIdPrefix ? { idPrefix: `${idPrefix}%` } : {}),
         }) as { count: number };
         const totalCount = countResult.count;
 
         const sortDir = pagination?.sortDirection === "DESC" ? "DESC" : "ASC";
+        const hasFirst = pagination?.first !== undefined && pagination.first !== 0;
+        const hasOffset = pagination?.offset !== undefined && pagination.offset !== 0;
         const stmt = db.prepare(
-          `SELECT * FROM resource WHERE org_id = @orgId${
-            filter?.idPrefix ? " AND id LIKE @idPrefix" : ""
-          } ORDER BY id ${sortDir}${pagination?.first ? " LIMIT @limit" : ""}${pagination?.offset ? " OFFSET @offset" : ""}`,
+          `SELECT * FROM resource WHERE tenant_id = @tenantId${
+            hasIdPrefix ? " AND id LIKE @idPrefix" : ""
+          } ORDER BY id ${sortDir}${hasFirst ? " LIMIT @limit" : ""}${hasOffset ? " OFFSET @offset" : ""}`,
         );
         const rows = stmt.all({
-          orgId: inputOrgId,
-          ...(filter?.idPrefix ? { idPrefix: `${filter.idPrefix}%` } : {}),
-          ...(pagination?.first ? { limit: pagination.first } : {}),
-          ...(pagination?.offset ? { offset: pagination.offset } : {}),
-        }) as Array<{
+          tenantId: inputTenantId,
+          ...(hasIdPrefix ? { idPrefix: `${idPrefix}%` } : {}),
+          ...(hasFirst ? { limit: pagination.first } : {}),
+          ...(hasOffset ? { offset: pagination.offset } : {}),
+        }) as {
           id: string;
-          org_id: string;
+          tenant_id: string;
           name: string | null;
           description: string | null;
           created_at: number;
           updated_at: number;
-        }>;
+        }[];
 
         return {
           success: true,
@@ -181,7 +188,7 @@ export function createResourceRepository(
             nodes: rows.map(mapResourceFromDb),
             totalCount,
             pageInfo: {
-              hasNextPage: pagination?.first
+              hasNextPage: hasFirst
                 ? rows.length === pagination.first
                 : false,
               hasPreviousPage: false,
@@ -196,33 +203,34 @@ export function createResourceRepository(
       }
     },
 
-    async listByOrg(
-      inputOrgId: string,
+    async listByTenant(
+      inputTenantId: string,
       pagination?: PaginationInput,
     ): Promise<Result<Connection<Resource>>> {
-      return this.list(inputOrgId, undefined, pagination);
+      return this.list(inputTenantId, undefined, pagination);
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async listByIdPrefix(
-      inputOrgId: string,
+      inputTenantId: string,
       idPrefix: string,
     ): Promise<Result<Resource[]>> {
       try {
         // Use raw SQL for LIKE
         const stmt = db.prepare(
-          `SELECT * FROM resource WHERE org_id = @orgId AND id LIKE @idPrefix ORDER BY id ASC`,
+          `SELECT * FROM resource WHERE tenant_id = @tenantId AND id LIKE @idPrefix ORDER BY id ASC`,
         );
         const rows = stmt.all({
-          orgId: inputOrgId,
+          tenantId: inputTenantId,
           idPrefix: `${idPrefix}%`,
-        }) as Array<{
+        }) as {
           id: string;
-          org_id: string;
+          tenant_id: string;
           name: string | null;
           description: string | null;
           created_at: number;
           updated_at: number;
-        }>;
+        }[];
         return { success: true, data: rows.map(mapResourceFromDb) };
       } catch (error) {
         logger.error("Failed to list resources by prefix", { error, idPrefix });
@@ -230,8 +238,9 @@ export function createResourceRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async update(
-      inputOrgId: string,
+      inputTenantId: string,
       resourceId: string,
       input: UpdateResourceInput,
     ): Promise<Result<Resource>> {
@@ -242,7 +251,7 @@ export function createResourceRepository(
         const updates: string[] = ["updated_at = @updated_at"];
         const params: Record<string, unknown> = {
           resourceId,
-          orgId: inputOrgId,
+          tenantId: inputTenantId,
           updated_at: now,
         };
 
@@ -256,7 +265,7 @@ export function createResourceRepository(
         }
 
         const stmt = db.prepare(
-          `UPDATE resource SET ${updates.join(", ")} WHERE id = @resourceId AND org_id = @orgId`,
+          `UPDATE resource SET ${updates.join(", ")} WHERE id = @resourceId AND tenant_id = @tenantId`,
         );
         stmt.run(params);
 
@@ -264,14 +273,14 @@ export function createResourceRepository(
         const rows = executeSelect(
           db,
           schema,
-          (q, p: { resourceId: string; orgId: string }) =>
+          (q, p: { resourceId: string; tenantId: string }) =>
             q
               .from("resource")
-              .where((r) => r.id === p.resourceId && r.org_id === p.orgId),
-          { resourceId, orgId: inputOrgId },
+              .where((r) => r.id === p.resourceId && r.tenant_id === p.tenantId),
+          { resourceId, tenantId: inputTenantId },
         );
 
-        if (!rows[0]) {
+        if (rows.length === 0) {
           return { success: false, error: new Error("Resource not found") };
         }
 
@@ -282,8 +291,9 @@ export function createResourceRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async delete(
-      inputOrgId: string,
+      inputTenantId: string,
       resourceId: string,
     ): Promise<Result<boolean>> {
       try {
@@ -291,35 +301,35 @@ export function createResourceRepository(
           executeDelete(
             db,
             schema,
-            (q, p: { resourceId: string; orgId: string }) =>
+            (q, p: { resourceId: string; tenantId: string }) =>
               q
                 .deleteFrom("user_permission")
                 .where(
                   (up) =>
-                    up.resource_id === p.resourceId && up.org_id === p.orgId,
+                    up.resource_id === p.resourceId && up.tenant_id === p.tenantId,
                 ),
-            { resourceId, orgId: inputOrgId },
+            { resourceId, tenantId: inputTenantId },
           );
           executeDelete(
             db,
             schema,
-            (q, p: { resourceId: string; orgId: string }) =>
+            (q, p: { resourceId: string; tenantId: string }) =>
               q
                 .deleteFrom("role_permission")
                 .where(
                   (rp) =>
-                    rp.resource_id === p.resourceId && rp.org_id === p.orgId,
+                    rp.resource_id === p.resourceId && rp.tenant_id === p.tenantId,
                 ),
-            { resourceId, orgId: inputOrgId },
+            { resourceId, tenantId: inputTenantId },
           );
           executeDelete(
             db,
             schema,
-            (q, p: { resourceId: string; orgId: string }) =>
+            (q, p: { resourceId: string; tenantId: string }) =>
               q
                 .deleteFrom("resource")
-                .where((r) => r.id === p.resourceId && r.org_id === p.orgId),
-            { resourceId, orgId: inputOrgId },
+                .where((r) => r.id === p.resourceId && r.tenant_id === p.tenantId),
+            { resourceId, tenantId: inputTenantId },
           );
         });
 
@@ -331,20 +341,21 @@ export function createResourceRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async deleteByIdPrefix(
-      inputOrgId: string,
+      inputTenantId: string,
       idPrefix: string,
     ): Promise<Result<number>> {
       try {
         const result = db.transaction(() => {
           // Get all resource IDs matching the prefix
           const stmt = db.prepare(
-            `SELECT id FROM resource WHERE org_id = @orgId AND id LIKE @idPrefix`,
+            `SELECT id FROM resource WHERE tenant_id = @tenantId AND id LIKE @idPrefix`,
           );
           const resources = stmt.all({
-            orgId: inputOrgId,
+            tenantId: inputTenantId,
             idPrefix: `${idPrefix}%`,
-          }) as Array<{ id: string }>;
+          }) as { id: string }[];
 
           if (resources.length === 0) {
             return 0;
@@ -355,33 +366,33 @@ export function createResourceRepository(
             executeDelete(
               db,
               schema,
-              (q, p: { resId: string; orgId: string }) =>
+              (q, p: { resId: string; tenantId: string }) =>
                 q
                   .deleteFrom("user_permission")
                   .where(
-                    (up) => up.resource_id === p.resId && up.org_id === p.orgId,
+                    (up) => up.resource_id === p.resId && up.tenant_id === p.tenantId,
                   ),
-              { resId: res.id, orgId: inputOrgId },
+              { resId: res.id, tenantId: inputTenantId },
             );
             executeDelete(
               db,
               schema,
-              (q, p: { resId: string; orgId: string }) =>
+              (q, p: { resId: string; tenantId: string }) =>
                 q
                   .deleteFrom("role_permission")
                   .where(
-                    (rp) => rp.resource_id === p.resId && rp.org_id === p.orgId,
+                    (rp) => rp.resource_id === p.resId && rp.tenant_id === p.tenantId,
                   ),
-              { resId: res.id, orgId: inputOrgId },
+              { resId: res.id, tenantId: inputTenantId },
             );
           }
 
           // Delete resources using raw SQL for LIKE
           const deleteStmt = db.prepare(
-            `DELETE FROM resource WHERE org_id = @orgId AND id LIKE @idPrefix`,
+            `DELETE FROM resource WHERE tenant_id = @tenantId AND id LIKE @idPrefix`,
           );
           const deleteResult = deleteStmt.run({
-            orgId: inputOrgId,
+            tenantId: inputTenantId,
             idPrefix: `${idPrefix}%`,
           });
 

@@ -1,66 +1,66 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createOrgClient } from "../index.js";
+import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
 
 describe("Property Operations", () => {
-  let testOrgClientInstance: ReturnType<typeof createOrgClient> | undefined;
+  let testTenantClientInstance: ReturnType<typeof createTenantClient> | undefined;
 
-  const testOrgClient = () => {
-    if (!testOrgClientInstance) {
+  const testTenantClient = () => {
+    if (!testTenantClientInstance) {
       throw new Error(
-        "testOrgClient not initialized. Make sure beforeEach has run.",
+        "testTenantClient not initialized. Make sure beforeEach has run.",
       );
     }
-    return testOrgClientInstance;
+    return testTenantClientInstance;
   };
 
   beforeEach(async () => {
-    await testDb.truncateAllTables();
+    truncateAllTables(testDb);
 
-    // Create test organization using ROOT client
-    const orgMutation = gql`
-      mutation CreateOrganization($input: CreateOrganizationInput!) {
-        createOrganization(input: $input) {
+    // Create test tenant using ROOT client
+    const tenantMutation = gql`
+      mutation CreateTenant($input: CreateTenantInput!) {
+        createTenant(input: $input) {
           id
         }
       }
     `;
 
-    await rootClient.mutate(orgMutation, {
-      input: { id: "test-org", name: "Test Organization" },
+    await rootClient.mutate(tenantMutation, {
+      input: { id: "test-org", name: "Test Tenant" },
     });
 
-    // Create organization-specific client
-    testOrgClientInstance = createOrgClient("test-org");
+    // Create tenant-specific client
+    testTenantClientInstance = createTenantClient("test-org");
   });
 
-  describe("Organization Properties", () => {
+  describe("Tenant Properties", () => {
     beforeEach(async () => {
-      // Add a property to the test organization
+      // Add a property to the test tenant
       const setPropMutation = gql`
-        mutation SetOrganizationProperty(
-          $orgId: ID!
+        mutation SetTenantProperty(
+          $tenantId: ID!
           $name: String!
           $value: JSON
         ) {
-          setOrganizationProperty(orgId: $orgId, name: $name, value: $value) {
+          setTenantProperty(tenantId: $tenantId, name: $name, value: $value) {
             name
           }
         }
       `;
 
-      await testOrgClient().mutate(setPropMutation, {
-        orgId: "test-org",
+      await testTenantClient().mutate(setPropMutation, {
+        tenantId: "test-org",
         name: "existing_prop",
         value: "initial_value",
       });
     });
 
-    describe("organizationProperty query", () => {
-      it("should retrieve a single organization property", async () => {
+    describe("tenantProperty query", () => {
+      it("should retrieve a single tenant property", async () => {
         const query = gql`
-          query GetOrganizationProperty($orgId: ID!, $propertyName: String!) {
-            organizationProperty(orgId: $orgId, propertyName: $propertyName) {
+          query GetTenantProperty($tenantId: ID!, $propertyName: String!) {
+            tenantProperty(tenantId: $tenantId, propertyName: $propertyName) {
               name
               value
               hidden
@@ -69,52 +69,52 @@ describe("Property Operations", () => {
           }
         `;
 
-        const result = await testOrgClient().query(query, {
-          orgId: "test-org",
+        const result = await testTenantClient().query(query, {
+          tenantId: "test-org",
           propertyName: "existing_prop",
         });
 
-        expect(result.data?.organizationProperty).to.not.be.null;
-        expect(result.data?.organizationProperty?.name).to.equal(
+        expect(result.data?.tenantProperty).to.not.be.null;
+        expect(result.data?.tenantProperty?.name).to.equal(
           "existing_prop",
         );
-        expect(result.data?.organizationProperty?.value).to.equal(
+        expect(result.data?.tenantProperty?.value).to.equal(
           "initial_value",
         );
-        expect(result.data?.organizationProperty?.hidden).to.be.false;
-        expect(result.data?.organizationProperty?.createdAt).to.be.a("number");
+        expect(result.data?.tenantProperty?.hidden).to.be.false;
+        expect(result.data?.tenantProperty?.createdAt).to.be.a("number");
       });
 
       it("should return null for non-existent property", async () => {
         const query = gql`
-          query GetOrganizationProperty($orgId: ID!, $propertyName: String!) {
-            organizationProperty(orgId: $orgId, propertyName: $propertyName) {
+          query GetTenantProperty($tenantId: ID!, $propertyName: String!) {
+            tenantProperty(tenantId: $tenantId, propertyName: $propertyName) {
               name
               value
             }
           }
         `;
 
-        const result = await testOrgClient().query(query, {
-          orgId: "test-org",
+        const result = await testTenantClient().query(query, {
+          tenantId: "test-org",
           propertyName: "non_existent",
         });
 
-        expect(result.data?.organizationProperty).to.be.null;
+        expect(result.data?.tenantProperty).to.be.null;
       });
     });
 
-    describe("setOrganizationProperty mutation", () => {
-      it("should create a new organization property", async () => {
+    describe("setTenantProperty mutation", () => {
+      it("should create a new tenant property", async () => {
         const mutation = gql`
-          mutation SetOrganizationProperty(
-            $orgId: ID!
+          mutation SetTenantProperty(
+            $tenantId: ID!
             $name: String!
             $value: JSON
             $hidden: Boolean
           ) {
-            setOrganizationProperty(
-              orgId: $orgId
+            setTenantProperty(
+              tenantId: $tenantId
               name: $name
               value: $value
               hidden: $hidden
@@ -126,31 +126,31 @@ describe("Property Operations", () => {
           }
         `;
 
-        const result = await testOrgClient().mutate(mutation, {
-          orgId: "test-org",
+        const result = await testTenantClient().mutate(mutation, {
+          tenantId: "test-org",
           name: "new_prop",
           value: { complex: "object", with: ["array", "values"] },
           hidden: false,
         });
 
-        expect(result.data?.setOrganizationProperty?.name).to.equal("new_prop");
-        expect(result.data?.setOrganizationProperty?.value).to.deep.equal({
+        expect(result.data?.setTenantProperty?.name).to.equal("new_prop");
+        expect(result.data?.setTenantProperty?.value).to.deep.equal({
           complex: "object",
           with: ["array", "values"],
         });
-        expect(result.data?.setOrganizationProperty?.hidden).to.be.false;
+        expect(result.data?.setTenantProperty?.hidden).to.be.false;
       });
 
-      it("should update an existing organization property", async () => {
+      it("should update an existing tenant property", async () => {
         const mutation = gql`
-          mutation SetOrganizationProperty(
-            $orgId: ID!
+          mutation SetTenantProperty(
+            $tenantId: ID!
             $name: String!
             $value: JSON
             $hidden: Boolean
           ) {
-            setOrganizationProperty(
-              orgId: $orgId
+            setTenantProperty(
+              tenantId: $tenantId
               name: $name
               value: $value
               hidden: $hidden
@@ -162,22 +162,22 @@ describe("Property Operations", () => {
           }
         `;
 
-        const result = await testOrgClient().mutate(mutation, {
-          orgId: "test-org",
+        const result = await testTenantClient().mutate(mutation, {
+          tenantId: "test-org",
           name: "existing_prop",
           value: "updated_value",
           hidden: true,
         });
 
-        expect(result.data?.setOrganizationProperty?.value).to.equal(
+        expect(result.data?.setTenantProperty?.value).to.equal(
           "updated_value",
         );
-        expect(result.data?.setOrganizationProperty?.hidden).to.be.true;
+        expect(result.data?.setTenantProperty?.hidden).to.be.true;
 
         // Verify it was updated
         const query = gql`
-          query GetOrganization($id: ID!) {
-            organization(id: $id) {
+          query GetTenant($id: ID!) {
+            tenant(id: $id) {
               properties {
                 name
                 value
@@ -187,11 +187,11 @@ describe("Property Operations", () => {
           }
         `;
 
-        const queryResult = await testOrgClient().query(query, {
+        const queryResult = await testTenantClient().query(query, {
           id: "test-org",
         });
-        expect(queryResult.data?.organization?.properties).to.have.lengthOf(1);
-        expect(queryResult.data?.organization?.properties[0]).to.deep.include({
+        expect(queryResult.data?.tenant?.properties).to.have.lengthOf(1);
+        expect(queryResult.data?.tenant?.properties[0]).to.deep.include({
           name: "existing_prop",
           value: "updated_value",
           hidden: true,
@@ -200,35 +200,35 @@ describe("Property Operations", () => {
 
       it("should handle null values", async () => {
         const mutation = gql`
-          mutation SetOrganizationProperty(
-            $orgId: ID!
+          mutation SetTenantProperty(
+            $tenantId: ID!
             $name: String!
             $value: JSON
           ) {
-            setOrganizationProperty(orgId: $orgId, name: $name, value: $value) {
+            setTenantProperty(tenantId: $tenantId, name: $name, value: $value) {
               name
               value
             }
           }
         `;
 
-        const result = await testOrgClient().mutate(mutation, {
-          orgId: "test-org",
+        const result = await testTenantClient().mutate(mutation, {
+          tenantId: "test-org",
           name: "null_prop",
           value: null,
         });
 
-        expect(result.data?.setOrganizationProperty?.value).to.be.null;
+        expect(result.data?.setTenantProperty?.value).to.be.null;
       });
 
       it("should handle various JSON types", async () => {
         const mutation = gql`
-          mutation SetOrganizationProperty(
-            $orgId: ID!
+          mutation SetTenantProperty(
+            $tenantId: ID!
             $name: String!
             $value: JSON
           ) {
-            setOrganizationProperty(orgId: $orgId, name: $name, value: $value) {
+            setTenantProperty(tenantId: $tenantId, name: $name, value: $value) {
               name
               value
             }
@@ -236,28 +236,28 @@ describe("Property Operations", () => {
         `;
 
         // Test number
-        const result = await testOrgClient().mutate(mutation, {
-          orgId: "test-org",
+        const result = await testTenantClient().mutate(mutation, {
+          tenantId: "test-org",
           name: "number_prop",
           value: 42.5,
         });
-        expect(result.data?.setOrganizationProperty?.value).to.equal(42.5);
+        expect(result.data?.setTenantProperty?.value).to.equal(42.5);
 
         // Test boolean
-        const boolResult = await testOrgClient().mutate(mutation, {
-          orgId: "test-org",
+        const boolResult = await testTenantClient().mutate(mutation, {
+          tenantId: "test-org",
           name: "bool_prop",
           value: true,
         });
-        expect(boolResult.data?.setOrganizationProperty?.value).to.equal(true);
+        expect(boolResult.data?.setTenantProperty?.value).to.equal(true);
 
         // Test array
-        const arrayResult = await testOrgClient().mutate(mutation, {
-          orgId: "test-org",
+        const arrayResult = await testTenantClient().mutate(mutation, {
+          tenantId: "test-org",
           name: "array_prop",
           value: [1, "two", { three: 3 }, null],
         });
-        expect(arrayResult.data?.setOrganizationProperty?.value).to.deep.equal([
+        expect(arrayResult.data?.setTenantProperty?.value).to.deep.equal([
           1,
           "two",
           { three: 3 },
@@ -265,8 +265,8 @@ describe("Property Operations", () => {
         ]);
 
         // Test nested object
-        const nestedResult = await testOrgClient().mutate(mutation, {
-          orgId: "test-org",
+        const nestedResult = await testTenantClient().mutate(mutation, {
+          tenantId: "test-org",
           name: "nested_prop",
           value: {
             level1: {
@@ -277,7 +277,7 @@ describe("Property Operations", () => {
             },
           },
         });
-        expect(nestedResult.data?.setOrganizationProperty?.value).to.deep.equal(
+        expect(nestedResult.data?.setTenantProperty?.value).to.deep.equal(
           {
             level1: {
               level2: {
@@ -290,71 +290,71 @@ describe("Property Operations", () => {
       });
     });
 
-    describe("deleteOrganizationProperty mutation", () => {
-      it("should delete an existing organization property", async () => {
+    describe("deleteTenantProperty mutation", () => {
+      it("should delete an existing tenant property", async () => {
         // First add a property
         const setPropMutation = gql`
-          mutation SetOrganizationProperty(
-            $orgId: ID!
+          mutation SetTenantProperty(
+            $tenantId: ID!
             $name: String!
             $value: JSON
           ) {
-            setOrganizationProperty(orgId: $orgId, name: $name, value: $value) {
+            setTenantProperty(tenantId: $tenantId, name: $name, value: $value) {
               name
             }
           }
         `;
 
-        await testOrgClient().mutate(setPropMutation, {
-          orgId: "test-org",
+        await testTenantClient().mutate(setPropMutation, {
+          tenantId: "test-org",
           name: "to_delete",
           value: "delete_me",
         });
 
         // Delete the property
         const deleteMutation = gql`
-          mutation DeleteOrganizationProperty($orgId: ID!, $name: String!) {
-            deleteOrganizationProperty(orgId: $orgId, name: $name)
+          mutation DeleteTenantProperty($tenantId: ID!, $name: String!) {
+            deleteTenantProperty(tenantId: $tenantId, name: $name)
           }
         `;
 
-        const result = await testOrgClient().mutate(deleteMutation, {
-          orgId: "test-org",
+        const result = await testTenantClient().mutate(deleteMutation, {
+          tenantId: "test-org",
           name: "to_delete",
         });
 
-        expect(result.data?.deleteOrganizationProperty).to.be.true;
+        expect(result.data?.deleteTenantProperty).to.be.true;
 
         // Verify it's deleted
         const query = gql`
-          query GetOrganizationProperty($orgId: ID!, $propertyName: String!) {
-            organizationProperty(orgId: $orgId, propertyName: $propertyName) {
+          query GetTenantProperty($tenantId: ID!, $propertyName: String!) {
+            tenantProperty(tenantId: $tenantId, propertyName: $propertyName) {
               name
             }
           }
         `;
 
-        const queryResult = await testOrgClient().query(query, {
-          orgId: "test-org",
+        const queryResult = await testTenantClient().query(query, {
+          tenantId: "test-org",
           propertyName: "to_delete",
         });
 
-        expect(queryResult.data?.organizationProperty).to.be.null;
+        expect(queryResult.data?.tenantProperty).to.be.null;
       });
 
       it("should return false when deleting non-existent property", async () => {
         const mutation = gql`
-          mutation DeleteOrganizationProperty($orgId: ID!, $name: String!) {
-            deleteOrganizationProperty(orgId: $orgId, name: $name)
+          mutation DeleteTenantProperty($tenantId: ID!, $name: String!) {
+            deleteTenantProperty(tenantId: $tenantId, name: $name)
           }
         `;
 
-        const result = await testOrgClient().mutate(mutation, {
-          orgId: "test-org",
+        const result = await testTenantClient().mutate(mutation, {
+          tenantId: "test-org",
           name: "non_existent",
         });
 
-        expect(result.data?.deleteOrganizationProperty).to.be.false;
+        expect(result.data?.deleteTenantProperty).to.be.false;
       });
     });
   });
@@ -370,7 +370,7 @@ describe("Property Operations", () => {
         }
       `;
 
-      await testOrgClient().mutate(userMutation, {
+      await testTenantClient().mutate(userMutation, {
         input: {
           id: "test-user",
           identityProvider: "auth0",
@@ -393,7 +393,7 @@ describe("Property Operations", () => {
           }
         `;
 
-        const result = await testOrgClient().query(query, {
+        const result = await testTenantClient().query(query, {
           userId: "test-user",
           propertyName: "existing_prop",
         });
@@ -413,7 +413,7 @@ describe("Property Operations", () => {
           }
         `;
 
-        const result = await testOrgClient().query(query, {
+        const result = await testTenantClient().query(query, {
           userId: "test-user",
           propertyName: "non_existent",
         });
@@ -433,7 +433,7 @@ describe("Property Operations", () => {
           }
         `;
 
-        await testOrgClient().mutate(setPropMutation, {
+        await testTenantClient().mutate(setPropMutation, {
           userId: "test-user",
           name: "to_delete",
           value: "delete_me",
@@ -446,7 +446,7 @@ describe("Property Operations", () => {
           }
         `;
 
-        const result = await testOrgClient().mutate(deleteMutation, {
+        const result = await testTenantClient().mutate(deleteMutation, {
           userId: "test-user",
           name: "to_delete",
         });
@@ -462,7 +462,7 @@ describe("Property Operations", () => {
           }
         `;
 
-        const queryResult = await testOrgClient().query(query, {
+        const queryResult = await testTenantClient().query(query, {
           userId: "test-user",
           propertyName: "to_delete",
         });
@@ -483,7 +483,7 @@ describe("Property Operations", () => {
         }
       `;
 
-      await testOrgClient().mutate(roleMutation, {
+      await testTenantClient().mutate(roleMutation, {
         input: {
           id: "test-role",
           name: "Test Role",
@@ -505,7 +505,7 @@ describe("Property Operations", () => {
           }
         `;
 
-        const result = await testOrgClient().query(query, {
+        const result = await testTenantClient().query(query, {
           roleId: "test-role",
           propertyName: "existing_prop",
         });
@@ -539,7 +539,7 @@ describe("Property Operations", () => {
           }
         `;
 
-        const result = await testOrgClient().mutate(mutation, {
+        const result = await testTenantClient().mutate(mutation, {
           roleId: "test-role",
           name: "permissions_config",
           value: {
@@ -578,7 +578,7 @@ describe("Property Operations", () => {
           }
         `;
 
-        await testOrgClient().mutate(setPropMutation, {
+        await testTenantClient().mutate(setPropMutation, {
           roleId: "test-role",
           name: "to_delete",
           value: "delete_me",
@@ -591,7 +591,7 @@ describe("Property Operations", () => {
           }
         `;
 
-        const result = await testOrgClient().mutate(deleteMutation, {
+        const result = await testTenantClient().mutate(deleteMutation, {
           roleId: "test-role",
           name: "to_delete",
         });
@@ -605,35 +605,35 @@ describe("Property Operations", () => {
     it("should handle very large JSON objects", async () => {
       const largeObject: any = {};
       for (let i = 0; i < 100; i++) {
-        largeObject[`key_${i}`] = {
+        largeObject[`key_${String(i)}`] = {
           value: i,
           nested: {
-            data: `Some data string ${i}`,
+            data: `Some data string ${String(i)}`,
             array: Array(10).fill(i),
           },
         };
       }
 
       const mutation = gql`
-        mutation SetOrganizationProperty(
-          $orgId: ID!
+        mutation SetTenantProperty(
+          $tenantId: ID!
           $name: String!
           $value: JSON
         ) {
-          setOrganizationProperty(orgId: $orgId, name: $name, value: $value) {
+          setTenantProperty(tenantId: $tenantId, name: $name, value: $value) {
             name
             value
           }
         }
       `;
 
-      const result = await testOrgClient().mutate(mutation, {
-        orgId: "test-org",
+      const result = await testTenantClient().mutate(mutation, {
+        tenantId: "test-org",
         name: "large_object",
         value: largeObject,
       });
 
-      expect(result.data?.setOrganizationProperty?.value).to.deep.equal(
+      expect(result.data?.setTenantProperty?.value).to.deep.equal(
         largeObject,
       );
     });
@@ -648,37 +648,37 @@ describe("Property Operations", () => {
       current.value = "deep value";
 
       const mutation = gql`
-        mutation SetOrganizationProperty(
-          $orgId: ID!
+        mutation SetTenantProperty(
+          $tenantId: ID!
           $name: String!
           $value: JSON
         ) {
-          setOrganizationProperty(orgId: $orgId, name: $name, value: $value) {
+          setTenantProperty(tenantId: $tenantId, name: $name, value: $value) {
             name
             value
           }
         }
       `;
 
-      const result = await testOrgClient().mutate(mutation, {
-        orgId: "test-org",
+      const result = await testTenantClient().mutate(mutation, {
+        tenantId: "test-org",
         name: "deep_object",
         value: deepObject,
       });
 
-      expect(result.data?.setOrganizationProperty?.value).to.deep.equal(
+      expect(result.data?.setTenantProperty?.value).to.deep.equal(
         deepObject,
       );
     });
 
     it("should handle special characters in property names", async () => {
       const mutation = gql`
-        mutation SetOrganizationProperty(
-          $orgId: ID!
+        mutation SetTenantProperty(
+          $tenantId: ID!
           $name: String!
           $value: JSON
         ) {
-          setOrganizationProperty(orgId: $orgId, name: $name, value: $value) {
+          setTenantProperty(tenantId: $tenantId, name: $name, value: $value) {
             name
             value
           }
@@ -696,14 +696,14 @@ describe("Property Operations", () => {
       ];
 
       for (const name of specialNames) {
-        const result = await testOrgClient().mutate(mutation, {
-          orgId: "test-org",
+        const result = await testTenantClient().mutate(mutation, {
+          tenantId: "test-org",
           name: name,
           value: `value for ${name}`,
         });
 
-        expect(result.data?.setOrganizationProperty?.name).to.equal(name);
-        expect(result.data?.setOrganizationProperty?.value).to.equal(
+        expect(result.data?.setTenantProperty?.name).to.equal(name);
+        expect(result.data?.setTenantProperty?.value).to.equal(
           `value for ${name}`,
         );
       }
@@ -711,12 +711,12 @@ describe("Property Operations", () => {
 
     it("should handle empty strings and whitespace", async () => {
       const mutation = gql`
-        mutation SetOrganizationProperty(
-          $orgId: ID!
+        mutation SetTenantProperty(
+          $tenantId: ID!
           $name: String!
           $value: JSON
         ) {
-          setOrganizationProperty(orgId: $orgId, name: $name, value: $value) {
+          setTenantProperty(tenantId: $tenantId, name: $name, value: $value) {
             name
             value
           }
@@ -724,40 +724,40 @@ describe("Property Operations", () => {
       `;
 
       // Empty string value
-      const result = await testOrgClient().mutate(mutation, {
-        orgId: "test-org",
+      const result = await testTenantClient().mutate(mutation, {
+        tenantId: "test-org",
         name: "empty_string",
         value: "",
       });
-      expect(result.data?.setOrganizationProperty?.value).to.equal("");
+      expect(result.data?.setTenantProperty?.value).to.equal("");
 
       // Whitespace value
-      const whitespaceResult = await testOrgClient().mutate(mutation, {
-        orgId: "test-org",
+      const whitespaceResult = await testTenantClient().mutate(mutation, {
+        tenantId: "test-org",
         name: "whitespace",
         value: "   ",
       });
-      expect(whitespaceResult.data?.setOrganizationProperty?.value).to.equal(
+      expect(whitespaceResult.data?.setTenantProperty?.value).to.equal(
         "   ",
       );
     });
 
     it("should handle unicode and emoji in values", async () => {
       const mutation = gql`
-        mutation SetOrganizationProperty(
-          $orgId: ID!
+        mutation SetTenantProperty(
+          $tenantId: ID!
           $name: String!
           $value: JSON
         ) {
-          setOrganizationProperty(orgId: $orgId, name: $name, value: $value) {
+          setTenantProperty(tenantId: $tenantId, name: $name, value: $value) {
             name
             value
           }
         }
       `;
 
-      const result = await testOrgClient().mutate(mutation, {
-        orgId: "test-org",
+      const result = await testTenantClient().mutate(mutation, {
+        tenantId: "test-org",
         name: "unicode_prop",
         value: {
           emoji: "🚀🌟😊",
@@ -767,7 +767,7 @@ describe("Property Operations", () => {
         },
       });
 
-      expect(result.data?.setOrganizationProperty?.value).to.deep.equal({
+      expect(result.data?.setTenantProperty?.value).to.deep.equal({
         emoji: "🚀🌟😊",
         chinese: "你好世界",
         arabic: "مرحبا بالعالم",

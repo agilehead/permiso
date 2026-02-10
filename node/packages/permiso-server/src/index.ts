@@ -2,7 +2,7 @@ export * from "./types.js";
 export { resolvers } from "./resolvers/index.js";
 
 // Export all the resolver functions for direct use
-export * from "./resolvers/organization/index.js";
+export * from "./resolvers/tenant/index.js";
 export * from "./resolvers/user/index.js";
 export * from "./resolvers/role/index.js";
 export * from "./resolvers/resource/index.js";

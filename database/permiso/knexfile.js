@@ -1,31 +1,27 @@
-import { baseConfig } from "../../knexfile.js";
-import { config } from "dotenv";
+import "dotenv/config";
+import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 
-config();
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Get data directory from environment or use default
+const dataDir = process.env.PERMISO_DATA_DIR || "./data";
 
 export default {
-  ...baseConfig,
+  client: "better-sqlite3",
   connection: {
-    host: process.env.PERMISO_DB_HOST || "localhost",
-    port: parseInt(process.env.PERMISO_DB_PORT || "5432"),
-    database: process.env.PERMISO_DB_NAME || "permiso",
-    // Migrations need admin/superuser access to create users and grant permissions
-    user: process.env.MIGRATION_DB_USER || "postgres",
-    password: process.env.MIGRATION_DB_PASSWORD || "postgres",
+    filename: join(dataDir, "permiso.db"),
   },
+  useNullAsDefault: true,
   migrations: {
     directory: join(__dirname, "migrations"),
     extension: "js",
-    loadExtensions: [".js"],
   },
-  seeds: {
-    directory: join(__dirname, "seeds"),
-    extension: "js",
-    loadExtensions: [".js"],
+  pool: {
+    afterCreate: (conn, cb) => {
+      conn.pragma("journal_mode = WAL");
+      conn.pragma("foreign_keys = ON");
+      cb();
+    },
   },
 };

@@ -1,40 +1,28 @@
 #!/usr/bin/env bash
 # -------------------------------------------------------------------
-# format-all.sh – run prettier across all files
+# format-all.sh – Run prettier across all TypeScript and JavaScript files
 # -------------------------------------------------------------------
 set -euo pipefail
 
 # Change to the project root directory
 cd "$(dirname "$0")/.."
 
-# Check for --check flag
-CHECK_FLAG=""
-if [[ "${1:-}" == "--check" ]]; then
-  CHECK_FLAG="--check"
-  echo "Checking formatting across all files..."
-else
-  echo "Formatting all files with prettier..."
+echo "=== Formatting Permiso ==="
+
+# Build list of files to format
+FILES_TO_FORMAT=(
+  "node/packages/*/src/**/*.ts"
+  "*.json"
+  "node/packages/*/*.json"
+  "database/**/*.js"
+)
+
+# Only add test patterns if tests directory exists (not in Docker builds)
+if compgen -G "node/packages/*/tests/**/*.ts" > /dev/null 2>&1; then
+  FILES_TO_FORMAT+=("node/packages/*/tests/**/*.ts")
 fi
 
-# Run prettier
-if [[ -n "$CHECK_FLAG" ]]; then
-  npx prettier --check "**/*.{js,ts,tsx,json,md,yml,yaml}" --ignore-path .prettierignore
-else
-  npx prettier --write "**/*.{js,ts,tsx,json,md,yml,yaml}" --ignore-path .prettierignore
-fi
+# Run prettier on all relevant files
+npx prettier --write "${FILES_TO_FORMAT[@]}" --ignore-unknown
 
-if [ $? -eq 0 ]; then
-  if [[ -n "$CHECK_FLAG" ]]; then
-    echo "✓ All files are properly formatted!"
-  else
-    echo "✓ All files formatted successfully!"
-  fi
-  exit 0
-else
-  if [[ -n "$CHECK_FLAG" ]]; then
-    echo "✗ Some files need formatting"
-  else
-    echo "✗ Formatting failed"
-  fi
-  exit 1
-fi
+echo "=== Formatting completed ==="

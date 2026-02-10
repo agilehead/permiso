@@ -1,14 +1,14 @@
 import { deleteResource } from "../../domain/resource/delete-resource.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const deleteResourceResolver = {
   Mutation: {
     deleteResource: async (
       _: unknown,
-      args: { orgId: string; resourceId: string; safetyKey?: string },
+      args: { tenantId: string; resourceId: string; safetyKey?: string },
       context: DataContext & { safetyKey?: string },
     ) => {
-      if (context.safetyKey && context.safetyKey !== args.safetyKey) {
+      if (context.safetyKey !== undefined && context.safetyKey !== args.safetyKey) {
         throw new Error("Invalid safety key");
       }
 

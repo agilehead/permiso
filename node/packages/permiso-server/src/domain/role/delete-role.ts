@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 
 const logger = createLogger("permiso-server:roles");
@@ -9,7 +9,7 @@ export async function deleteRole(
   roleId: string,
 ): Promise<Result<boolean>> {
   try {
-    const result = await ctx.repos.role.delete(ctx.orgId, roleId);
+    const result = await ctx.repos.role.delete(ctx.tenantId, roleId);
     if (!result.success) {
       return { success: false, error: result.error };
     }

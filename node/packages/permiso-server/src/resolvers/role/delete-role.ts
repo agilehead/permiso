@@ -1,5 +1,5 @@
 import { deleteRole } from "../../domain/role/delete-role.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 // Re-export domain function
 export { deleteRole };
@@ -11,7 +11,7 @@ export const deleteRoleResolver = {
       args: { roleId: string; safetyKey?: string },
       context: DataContext & { safetyKey?: string },
     ) => {
-      if (context.safetyKey && context.safetyKey !== args.safetyKey) {
+      if (context.safetyKey !== undefined && context.safetyKey !== args.safetyKey) {
         throw new Error("Invalid safety key");
       }
 

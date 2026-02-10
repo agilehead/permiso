@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { RoleWithProperties, Property } from "../../types.js";
 
@@ -8,11 +8,11 @@ const logger = createLogger("permiso-server:roles");
 export async function getRole(
   ctx: DataContext,
   roleId: string,
-  orgId?: string,
+  tenantId?: string,
 ): Promise<Result<RoleWithProperties | null>> {
   try {
-    const effectiveOrgId = orgId || ctx.orgId;
-    const roleResult = await ctx.repos.role.getById(effectiveOrgId, roleId);
+    const effectiveTenantId = tenantId ?? ctx.tenantId;
+    const roleResult = await ctx.repos.role.getById(effectiveTenantId, roleId);
 
     if (!roleResult.success) {
       return { success: false, error: roleResult.error };
@@ -23,7 +23,7 @@ export async function getRole(
     }
 
     const propertiesResult = await ctx.repos.role.getProperties(
-      effectiveOrgId,
+      effectiveTenantId,
       roleId,
     );
 
@@ -31,17 +31,17 @@ export async function getRole(
 
     const result: RoleWithProperties = {
       id: roleResult.data.id,
-      orgId: roleResult.data.orgId,
+      tenantId: roleResult.data.tenantId,
       name: roleResult.data.name,
       description: roleResult.data.description,
       createdAt: roleResult.data.createdAt,
       updatedAt: roleResult.data.updatedAt,
-      properties: properties.reduce(
+      properties: properties.reduce<Record<string, unknown>>(
         (acc: Record<string, unknown>, prop: Property) => {
           acc[prop.name] = prop.value;
           return acc;
         },
-        {} as Record<string, unknown>,
+        {},
       ),
     };
 

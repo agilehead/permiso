@@ -1,7 +1,7 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
-import type { UserPermissionWithOrgId } from "../../types.js";
+import type { UserPermissionWithTenantId } from "../../types.js";
 
 const logger = createLogger("permiso-server:permissions");
 
@@ -10,15 +10,15 @@ export async function getUserPermissions(
   userId?: string,
   resourceId?: string,
   action?: string,
-  orgId?: string,
-): Promise<Result<UserPermissionWithOrgId[]>> {
+  tenantId?: string,
+): Promise<Result<UserPermissionWithTenantId[]>> {
   try {
-    const effectiveOrgId = orgId || ctx.orgId;
+    const effectiveTenantId = tenantId ?? ctx.tenantId;
 
     // If userId is provided, get permissions for that user
-    if (userId) {
+    if (userId !== undefined && userId !== "") {
       const result = await ctx.repos.permission.getUserPermissions(
-        effectiveOrgId,
+        effectiveTenantId,
         userId,
       );
 
@@ -28,10 +28,10 @@ export async function getUserPermissions(
 
       // Apply additional filters if provided
       let permissions = result.data;
-      if (resourceId) {
+      if (resourceId !== undefined && resourceId !== "") {
         permissions = permissions.filter((p) => p.resourceId === resourceId);
       }
-      if (action) {
+      if (action !== undefined && action !== "") {
         permissions = permissions.filter((p) => p.action === action);
       }
 
@@ -39,9 +39,9 @@ export async function getUserPermissions(
     }
 
     // If resourceId is provided without userId, get by resource
-    if (resourceId) {
+    if (resourceId !== undefined && resourceId !== "") {
       const result = await ctx.repos.permission.getPermissionsByResource(
-        effectiveOrgId,
+        effectiveTenantId,
         resourceId,
       );
 
@@ -50,7 +50,7 @@ export async function getUserPermissions(
       }
 
       let permissions = result.data.userPermissions;
-      if (action) {
+      if (action !== undefined && action !== "") {
         permissions = permissions.filter((p) => p.action === action);
       }
 

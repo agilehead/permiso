@@ -1,16 +1,16 @@
 import type { Resource } from "../../types.js";
-import { getOrganization } from "../../domain/organization/get-organization.js";
+import { getTenant } from "../../domain/tenant/get-tenant.js";
 import { getPermissionsByResource } from "../../domain/permission/get-permissions-by-resource.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const resourceFieldResolvers = {
   Resource: {
-    organization: async (
+    tenant: async (
       parent: Resource,
       _: unknown,
       context: DataContext,
     ) => {
-      const result = await getOrganization(context, parent.orgId);
+      const result = await getTenant(context, parent.tenantId);
       if (!result.success) {
         throw result.error;
       }

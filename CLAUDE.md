@@ -146,7 +146,6 @@ This means: Focus on clean, optimal implementations without worrying about exist
 ```bash
 # Check migration status (safe to run)
 npm run migrate:permiso:status
-npm run migrate:all:status
 
 # Create new migration (safe to run)
 npm run migrate:permiso:make migration_name
@@ -154,13 +153,6 @@ npm run migrate:permiso:make migration_name
 # Run migrations (ONLY when explicitly asked)
 npm run migrate:permiso:latest
 npm run migrate:permiso:rollback
-npm run migrate:all
-
-# Create seed file (safe to run)
-npm run seed:permiso:make seed_name
-
-# Run seeds (ONLY when explicitly asked)
-npm run seed:permiso:run
 ```
 
 ### Testing Commands
@@ -234,13 +226,13 @@ When the user asks you to commit and push:
 
 ### Database Conventions
 
-- **PostgreSQL** with **Knex.js** for migrations, **pg-promise** for data access (NO ORMs)
-- Table names: **singular** and **snake_case** (e.g., `organization`, `user_role`)
+- **SQLite** with **Knex.js** for migrations, **Tinqer** + **better-sqlite3** for data access (NO ORMs)
+- Table names: **singular** and **snake_case** (e.g., `tenant`, `user_role`)
 - TypeScript: **camelCase** for all variables/properties
 - SQL: **snake_case** for all table/column names
-- **DbRow Pattern**: All persistence functions use `XxxDbRow` types that mirror exact database schema
-- **Mapper Functions**: `mapXxxFromDb()` and `mapXxxToDb()` handle conversions between snake_case DB and camelCase domain types
-- **Type-safe Queries**: All queries use `db.one<XxxDbRow>()` with explicit type parameters
+- **Repository pattern**: All database access through repository interfaces in `src/repositories/`
+- **Mapper Functions**: `mapXxxFromDb()` handle conversions between snake_case DB and camelCase domain types
+- **Type-safe Queries**: Uses Tinqer schema for compile-time type checking
 
 **Query Optimization Guidelines**:
 
@@ -257,37 +249,30 @@ When the user asks you to commit and push:
 
 ## Code Patterns
 
-### Database Row Pattern (DbRow)
+### Database Row Pattern
 
 ```typescript
-// ✅ Good - DbRow type mirrors exact database schema
-type UserDbRow = {
+// ✅ Good - Row type mirrors exact database schema (defined in tinqer-schema.ts)
+type UserRow = {
   id: string;
-  org_id: string;
+  tenant_id: string;
   identity_provider: string;
   identity_provider_user_id: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at: number;
+  updated_at: number;
 };
 
-// ✅ Good - Mapper functions for DB ↔ Domain conversions
-function mapUserFromDb(row: UserDbRow): User {
+// ✅ Good - Mapper functions for DB → Domain conversions
+function mapUserFromDb(row: UserRow): User {
   return {
     id: row.id,
-    orgId: row.org_id,
+    tenantId: row.tenant_id,
     identityProvider: row.identity_provider,
     identityProviderUserId: row.identity_provider_user_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
-
-// ✅ Good - Type-safe queries with explicit type parameters and named parameters
-const result = await db.one<UserDbRow>(
-  `SELECT * FROM "user" WHERE id = $(id)`,
-  { id },
-);
-return mapUserFromDb(result);
 ```
 
 ### Function Export & Result Type Patterns
@@ -317,61 +302,12 @@ if (!result.success) {
 const validUser = result.data; // Type-safe
 ```
 
-### Import & Database Query Patterns
+### Import Patterns
 
 ```typescript
 // ✅ Good - Always include .js extension
 import { createUser } from "./users.js";
 import { Result } from "@codespin/permiso-core";
-
-// ✅ Good - Named parameters
-await db.none(
-  `INSERT INTO organization_property (org_id, name, value, hidden)
-   VALUES ($(orgId), $(name), $(value), $(hidden))`,
-  { orgId: input.id, name: p.name, value: p.value, hidden: p.hidden ?? false },
-);
-```
-
-### SQL Helper Functions
-
-Use `sql.insert()` and `sql.update()` from `@codespin/permiso-db`:
-
-```typescript
-import { sql } from "@codespin/permiso-db";
-
-// ✅ Good - Using sql.insert()
-const params = {
-  id: input.id,
-  org_id: input.orgId,
-  name: input.name,
-};
-await db.one(`${sql.insert("user", params)} RETURNING *`, params);
-
-// ✅ Good - Using sql.update() with WHERE clause
-const updateParams = { name: input.name };
-const query = `
-  ${sql.update("role", updateParams)}
-  WHERE id = $(roleId) AND org_id = $(orgId)
-  RETURNING *
-`;
-await db.one(query, { ...updateParams, roleId, orgId });
-```
-
-### Case Conversion Pattern
-
-**Key guideline**: Use `toSnakeCase` when converting existing camelCase objects (like GraphQL inputs), but directly create snake_case objects when constructing from individual parameters.
-
-```typescript
-// ✅ Good - Use toSnakeCase for incoming camelCase objects
-const snakeParams = stringUtils.toSnakeCase(input); // input has camelCase properties
-
-// ✅ Good - Directly create snake_case when building from individual parameters
-const params = {
-  user_id: userId,
-  org_id: orgId,
-  created_at: new Date(),
-};
-await db.one(`${sql.insert("user", params)} RETURNING *`, params);
 ```
 
 ## Testing & Development Optimization
@@ -453,17 +389,17 @@ Benefits: Keeps analysis artifacts separate from source code, allows iterative w
 ## Documentation References
 
 - **Project Overview**: [README.md](../README.md)
-- **Architecture**: [docs/architecture.md](docs/architecture.md) for RLS implementation and system design
+- **Architecture**: [docs/architecture.md](docs/architecture.md) for system design
 - **API Reference**: [docs/api.md](docs/api.md) for GraphQL schema and examples
-- **Database**: [docs/database.md](docs/database.md) for database users and multi-database setup
+- **Database**: [docs/database.md](docs/database.md) for database configuration
 - **Configuration**: [docs/configuration.md](docs/configuration.md) for environment variables
 - **Deployment**: [docs/deployment.md](docs/deployment.md) for Docker and production deployment
 - **Coding Standards**: [CODING-STANDARDS.md](../CODING-STANDARDS.md) for development patterns
 
 ## Debugging Tips
 
-1. **Permission issues**: Check RLS policies and user roles
+1. **Permission issues**: Check tenant filtering in repositories
 2. **GraphQL errors**: Check resolver return types and error handling
-3. **Database connection**: Verify DATABASE_URL and connection pooling
-4. **Authentication issues**: Verify JWT tokens and session configuration
+3. **Database connection**: Verify PERMISO_DATA_DIR
+4. **Authentication issues**: Verify API key configuration
 5. **Migration issues**: Check migration order and dependencies

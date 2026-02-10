@@ -1,29 +1,29 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createOrgClient } from "../index.js";
+import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
 
 describe("Properties - Complex JSON and Initial Values", () => {
-  beforeEach(async () => {
-    await testDb.truncateAllTables();
+  beforeEach(() => {
+    truncateAllTables(testDb);
   });
 
   describe("User Properties - Complex JSON", () => {
-    const getTestOrgClient = () => createOrgClient("test-org");
+    const getTestTenantClient = () => createTenantClient("test-org");
 
     beforeEach(async () => {
-      // Create test organization using ROOT client
-      const createOrgMutation = gql`
-        mutation CreateOrganization($input: CreateOrganizationInput!) {
-          createOrganization(input: $input) {
+      // Create test tenant using ROOT client
+      const createTenantMutation = gql`
+        mutation CreateTenant($input: CreateTenantInput!) {
+          createTenant(input: $input) {
             id
           }
         }
       `;
-      await rootClient.mutate(createOrgMutation, {
-        input: { id: "test-org", name: "Test Organization" },
+      await rootClient.mutate(createTenantMutation, {
+        input: { id: "test-org", name: "Test Tenant" },
       });
 
-      // Create organization-specific client
+      // Create tenant-specific client
 
       const createUserMutation = gql`
         mutation CreateUser($input: CreateUserInput!) {
@@ -32,8 +32,8 @@ describe("Properties - Complex JSON and Initial Values", () => {
           }
         }
       `;
-      const testOrgClient = getTestOrgClient();
-      await testOrgClient.mutate(createUserMutation, {
+      const testTenantClient = getTestTenantClient();
+      await testTenantClient.mutate(createUserMutation, {
         input: {
           id: "test-user",
           identityProvider: "test",
@@ -43,7 +43,7 @@ describe("Properties - Complex JSON and Initial Values", () => {
     });
 
     it("should handle complex JSON objects in user properties", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       const setPropMutation = gql`
         mutation SetUserProperty($userId: ID!, $name: String!, $value: JSON) {
           setUserProperty(userId: $userId, name: $name, value: $value) {
@@ -70,7 +70,7 @@ describe("Properties - Complex JSON and Initial Values", () => {
         },
       };
 
-      const result = await testOrgClient.mutate(setPropMutation, {
+      const result = await testTenantClient.mutate(setPropMutation, {
         userId: "test-user",
         name: "settings",
         value: complexValue,
@@ -81,22 +81,22 @@ describe("Properties - Complex JSON and Initial Values", () => {
   });
 
   describe("Role Properties - Complex Arrays", () => {
-    const getTestOrgClient = () => createOrgClient("test-org");
+    const getTestTenantClient = () => createTenantClient("test-org");
 
     beforeEach(async () => {
-      // Create test organization using ROOT client
-      const createOrgMutation = gql`
-        mutation CreateOrganization($input: CreateOrganizationInput!) {
-          createOrganization(input: $input) {
+      // Create test tenant using ROOT client
+      const createTenantMutation = gql`
+        mutation CreateTenant($input: CreateTenantInput!) {
+          createTenant(input: $input) {
             id
           }
         }
       `;
-      await rootClient.mutate(createOrgMutation, {
-        input: { id: "test-org", name: "Test Organization" },
+      await rootClient.mutate(createTenantMutation, {
+        input: { id: "test-org", name: "Test Tenant" },
       });
 
-      // Create organization-specific client
+      // Create tenant-specific client
 
       const createRoleMutation = gql`
         mutation CreateRole($input: CreateRoleInput!) {
@@ -105,8 +105,8 @@ describe("Properties - Complex JSON and Initial Values", () => {
           }
         }
       `;
-      const testOrgClient = getTestOrgClient();
-      await testOrgClient.mutate(createRoleMutation, {
+      const testTenantClient = getTestTenantClient();
+      await testTenantClient.mutate(createRoleMutation, {
         input: {
           id: "test-role",
           name: "Test Role",
@@ -115,7 +115,7 @@ describe("Properties - Complex JSON and Initial Values", () => {
     });
 
     it("should handle arrays and nested structures in role properties", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       const setPropMutation = gql`
         mutation SetRoleProperty($roleId: ID!, $name: String!, $value: JSON) {
           setRoleProperty(roleId: $roleId, name: $name, value: $value) {
@@ -132,7 +132,7 @@ describe("Properties - Complex JSON and Initial Values", () => {
         { resource: "/api/admin/*", actions: ["*"] },
       ];
 
-      const result = await testOrgClient.mutate(setPropMutation, {
+      const result = await testTenantClient.mutate(setPropMutation, {
         roleId: "test-role",
         name: "customPermissions",
         value: permissionsValue,
@@ -145,10 +145,10 @@ describe("Properties - Complex JSON and Initial Values", () => {
   });
 
   describe("Property creation with initial values", () => {
-    it("should create organization with JSON property values", async () => {
+    it("should create tenant with JSON property values", async () => {
       const mutation = gql`
-        mutation CreateOrganization($input: CreateOrganizationInput!) {
-          createOrganization(input: $input) {
+        mutation CreateTenant($input: CreateTenantInput!) {
+          createTenant(input: $input) {
             id
             properties {
               name
@@ -162,7 +162,7 @@ describe("Properties - Complex JSON and Initial Values", () => {
       const result = await rootClient.mutate(mutation, {
         input: {
           id: "org-with-props",
-          name: "Organization with JSON props",
+          name: "Tenant with JSON props",
           properties: [
             { name: "config", value: { tier: "premium", maxUsers: 100 } },
             { name: "features", value: ["feature1", "feature2", "feature3"] },
@@ -172,7 +172,7 @@ describe("Properties - Complex JSON and Initial Values", () => {
         },
       });
 
-      const props = result.data?.createOrganization.properties;
+      const props = result.data?.createTenant.properties;
       expect(props).to.have.lengthOf(4);
 
       const propMap = props.reduce((acc: any, p: any) => {
@@ -191,22 +191,22 @@ describe("Properties - Complex JSON and Initial Values", () => {
     });
 
     it("should create user with JSON property values", async () => {
-      // First create organization using ROOT client
+      // First create tenant using ROOT client
       await rootClient.mutate(
         gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
         `,
         {
-          input: { id: "test-org", name: "Test Organization" },
+          input: { id: "test-org", name: "Test Tenant" },
         },
       );
 
-      // Create organization-specific client
-      const testOrgClient = createOrgClient("test-org");
+      // Create tenant-specific client
+      const testTenantClient = createTenantClient("test-org");
 
       const mutation = gql`
         mutation CreateUser($input: CreateUserInput!) {
@@ -220,7 +220,7 @@ describe("Properties - Complex JSON and Initial Values", () => {
         }
       `;
 
-      const result = await testOrgClient.mutate(mutation, {
+      const result = await testTenantClient.mutate(mutation, {
         input: {
           id: "user-with-props",
           identityProvider: "test",

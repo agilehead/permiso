@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { User } from "../../repositories/interfaces/index.js";
 import type { UpdateUserInput } from "../../generated/graphql.js";
@@ -12,7 +12,7 @@ export async function updateUser(
   input: UpdateUserInput,
 ): Promise<Result<User>> {
   try {
-    const result = await ctx.repos.user.update(ctx.orgId, userId, {
+    const result = await ctx.repos.user.update(ctx.tenantId, userId, {
       identityProvider: input.identityProvider ?? undefined,
       identityProviderUserId: input.identityProviderUserId ?? undefined,
     });

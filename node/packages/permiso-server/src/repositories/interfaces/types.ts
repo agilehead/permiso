@@ -54,8 +54,8 @@ export type TransactionContext = {
 export type { Result };
 
 /**
- * Normalize database errors to provide consistent error messages across SQLite and PostgreSQL.
- * Converts database-specific unique constraint violations to a common format.
+ * Normalize database errors to provide consistent error messages.
+ * Converts SQLite-specific constraint violations to a common format.
  */
 export function normalizeDbError(error: unknown): Error {
   if (!(error instanceof Error)) {
@@ -65,16 +65,9 @@ export function normalizeDbError(error: unknown): Error {
   const message = error.message;
 
   // SQLite unique constraint: "UNIQUE constraint failed: table.column"
-  // PostgreSQL unique constraint: "duplicate key value violates unique constraint"
-  if (
-    message.includes("UNIQUE constraint") ||
-    message.includes("duplicate key")
-  ) {
-    // Extract table name if possible
-    const sqliteMatch = message.match(/UNIQUE constraint failed: (\w+)\./);
-    const pgMatch = message.match(/duplicate key.*"(\w+)_pkey"/);
-    const entity = sqliteMatch?.[1] || pgMatch?.[1] || "record";
-
+  if (message.includes("UNIQUE constraint")) {
+    const match = /UNIQUE constraint failed: (\w+)\./.exec(message);
+    const entity = match?.[1] ?? "record";
     return new Error(`duplicate key: ${entity} already exists`);
   }
 

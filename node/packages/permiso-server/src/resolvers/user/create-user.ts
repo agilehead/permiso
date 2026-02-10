@@ -1,6 +1,6 @@
 import { createUser } from "../../domain/user/create-user.js";
 import { getUser } from "./get-user.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 import type { CreateUserInput } from "../../generated/graphql.js";
 
 // Re-export domain function

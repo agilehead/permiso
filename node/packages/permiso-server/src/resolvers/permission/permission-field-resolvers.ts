@@ -1,21 +1,21 @@
 import type {
-  UserPermissionWithOrgId,
-  RolePermissionWithOrgId,
+  UserPermissionWithTenantId,
+  RolePermissionWithTenantId,
 } from "../../types.js";
-import { getOrganization } from "../../domain/organization/get-organization.js";
+import { getTenant } from "../../domain/tenant/get-tenant.js";
 import { getResource } from "../../domain/resource/get-resource.js";
 import { getUser } from "../../domain/user/get-user.js";
 import { getRole } from "../../domain/role/get-role.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const permissionFieldResolvers = {
   UserPermission: {
-    organization: async (
-      parent: UserPermissionWithOrgId,
+    tenant: async (
+      parent: UserPermissionWithTenantId,
       _: unknown,
       context: DataContext,
     ) => {
-      const result = await getOrganization(context, parent.orgId);
+      const result = await getTenant(context, parent.tenantId);
       if (!result.success) {
         throw result.error;
       }
@@ -23,14 +23,14 @@ export const permissionFieldResolvers = {
     },
 
     resource: async (
-      parent: UserPermissionWithOrgId,
+      parent: UserPermissionWithTenantId,
       _: unknown,
       context: DataContext,
     ) => {
       const result = await getResource(
         context,
         parent.resourceId,
-        parent.orgId,
+        parent.tenantId,
       );
       if (!result.success) {
         throw result.error;
@@ -39,11 +39,11 @@ export const permissionFieldResolvers = {
     },
 
     user: async (
-      parent: UserPermissionWithOrgId,
+      parent: UserPermissionWithTenantId,
       _: unknown,
       context: DataContext,
     ) => {
-      const result = await getUser(context, parent.userId, parent.orgId);
+      const result = await getUser(context, parent.userId, parent.tenantId);
       if (!result.success) {
         throw result.error;
       }
@@ -52,12 +52,12 @@ export const permissionFieldResolvers = {
   },
 
   RolePermission: {
-    organization: async (
-      parent: RolePermissionWithOrgId,
+    tenant: async (
+      parent: RolePermissionWithTenantId,
       _: unknown,
       context: DataContext,
     ) => {
-      const result = await getOrganization(context, parent.orgId);
+      const result = await getTenant(context, parent.tenantId);
       if (!result.success) {
         throw result.error;
       }
@@ -65,14 +65,14 @@ export const permissionFieldResolvers = {
     },
 
     resource: async (
-      parent: RolePermissionWithOrgId,
+      parent: RolePermissionWithTenantId,
       _: unknown,
       context: DataContext,
     ) => {
       const result = await getResource(
         context,
         parent.resourceId,
-        parent.orgId,
+        parent.tenantId,
       );
       if (!result.success) {
         throw result.error;
@@ -81,11 +81,11 @@ export const permissionFieldResolvers = {
     },
 
     role: async (
-      parent: RolePermissionWithOrgId,
+      parent: RolePermissionWithTenantId,
       _: unknown,
       context: DataContext,
     ) => {
-      const result = await getRole(context, parent.roleId, parent.orgId);
+      const result = await getRole(context, parent.roleId, parent.tenantId);
       if (!result.success) {
         throw result.error;
       }

@@ -1,12 +1,12 @@
 import { getEffectivePermissionsByPrefix } from "../../domain/permission/get-effective-permissions-by-prefix.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const getEffectivePermissionsByPrefixResolver = {
   Query: {
     effectivePermissionsByPrefix: async (
       _: unknown,
       args: {
-        orgId: string;
+        tenantId: string;
         userId: string;
         resourceIdPrefix: string;
         action?: string;

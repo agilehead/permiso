@@ -10,7 +10,7 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 const currentLevel: LogLevel =
-  (process.env.LOG_LEVEL as LogLevel | undefined) || "info";
+  (process.env.LOG_LEVEL as LogLevel | undefined) ?? "info";
 const currentLevelValue = LOG_LEVELS[currentLevel];
 
 function shouldLog(level: LogLevel): boolean {
@@ -24,7 +24,7 @@ function formatMessage(
   data?: unknown,
 ): string {
   const timestamp = new Date().toISOString();
-  const dataStr = data ? ` ${JSON.stringify(data)}` : "";
+  const dataStr = data !== undefined ? ` ${JSON.stringify(data)}` : "";
   return `[${timestamp}] ${level.toUpperCase()} (${name}): ${msg}${dataStr}`;
 }
 

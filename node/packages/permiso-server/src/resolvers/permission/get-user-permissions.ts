@@ -1,12 +1,12 @@
 import { getUserPermissions } from "../../domain/permission/get-user-permissions.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const getUserPermissionsResolver = {
   Query: {
     userPermissions: async (
       _: unknown,
       args: {
-        orgId: string;
+        tenantId: string;
         userId?: string;
         resourceId?: string;
         action?: string;

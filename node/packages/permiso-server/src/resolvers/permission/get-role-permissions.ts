@@ -1,12 +1,12 @@
 import { getRolePermissions } from "../../domain/permission/get-role-permissions.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const getRolePermissionsResolver = {
   Query: {
     rolePermissions: async (
       _: unknown,
       args: {
-        orgId: string;
+        tenantId: string;
         roleId?: string;
         resourceId?: string;
         action?: string;

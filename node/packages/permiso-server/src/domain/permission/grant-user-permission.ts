@@ -1,7 +1,7 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
-import type { UserPermissionWithOrgId } from "../../types.js";
+import type { UserPermissionWithTenantId } from "../../types.js";
 
 const logger = createLogger("permiso-server:permissions");
 
@@ -10,10 +10,10 @@ export async function grantUserPermission(
   userId: string,
   resourceId: string,
   action: string,
-): Promise<Result<UserPermissionWithOrgId>> {
+): Promise<Result<UserPermissionWithTenantId>> {
   try {
     const result = await ctx.repos.permission.grantUserPermission(
-      ctx.orgId,
+      ctx.tenantId,
       userId,
       { resourceId, action },
     );

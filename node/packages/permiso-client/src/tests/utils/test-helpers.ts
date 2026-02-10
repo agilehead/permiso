@@ -1,16 +1,17 @@
-import { PermisoConfig } from "../../types.js";
+import type { PermisoConfig } from "../../types.js";
 import { testLogger } from "@codespin/permiso-test-utils";
+import { TEST_BASE_URL, TEST_API_KEY } from "../setup.js";
 
 export function getTestConfig(): PermisoConfig {
   return {
-    endpoint: "http://localhost:5003",
-    apiKey: "test-token", // Bearer token for authentication
-    // No orgId = ROOT context for cross-org operations
+    endpoint: TEST_BASE_URL,
+    apiKey: TEST_API_KEY,
+    // No tenantId = ROOT context for cross-tenant operations
     timeout: 30000,
     logger: testLogger,
   };
 }
 
 export function generateTestId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  return `${prefix}-${String(Date.now())}-${Math.random().toString(36).substring(7)}`;
 }

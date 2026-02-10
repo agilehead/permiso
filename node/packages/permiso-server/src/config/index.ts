@@ -4,11 +4,9 @@
 
 export {
   initializeDatabaseConfig,
-  getDatabaseType,
   createRequestRepositories,
-  getPostgresHealthCheckDb,
-  getSqliteHealthCheckDb,
+  getHealthCheckDb,
   closeDatabaseConnections,
-  type DatabaseType,
-  type DatabaseConfig,
 } from "./database.js";
+
+export { config } from "../config.js";

@@ -1,5 +1,5 @@
 import { graphqlRequest } from "../http-client.js";
-import { Result, PermisoConfig } from "../types.js";
+import type { Result, PermisoConfig } from "../types.js";
 import { buildHeaders } from "./utils.js";
 import type {
   Resource,
@@ -10,17 +10,17 @@ import type {
 } from "../generated/types.js";
 
 /**
- * Get a resource by organization and resource ID
+ * Get a resource by tenant and resource ID
  */
 export async function getResource(
   config: PermisoConfig,
   resourceId: string,
-): Promise<Result<Resource | null, Error>> {
+): Promise<Result<Resource | null>> {
   const query = `
     query GetResource($resourceId: ID!) {
       resource(resourceId: $resourceId) {
         id
-        orgId
+        tenantId
         name
         description
         createdAt
@@ -46,7 +46,7 @@ export async function getResource(
 }
 
 /**
- * List resources in an organization with optional filtering and pagination
+ * List resources in a tenant with optional filtering and pagination
  */
 export async function listResources(
   config: PermisoConfig,
@@ -65,8 +65,7 @@ export async function listResources(
         startCursor?: string;
         endCursor?: string;
       };
-    },
-    Error
+    }
   >
 > {
   const query = `
@@ -74,7 +73,7 @@ export async function listResources(
       resources(filter: $filter, pagination: $pagination) {
         nodes {
           id
-          orgId
+          tenantId
           name
           description
           createdAt
@@ -127,12 +126,12 @@ export async function listResources(
 export async function getResourcesByIdPrefix(
   config: PermisoConfig,
   idPrefix: string,
-): Promise<Result<Resource[], Error>> {
+): Promise<Result<Resource[]>> {
   const query = `
     query GetResourcesByIdPrefix($idPrefix: String!) {
       resourcesByIdPrefix(idPrefix: $idPrefix) {
         id
-        orgId
+        tenantId
         name
         description
         createdAt
@@ -163,12 +162,12 @@ export async function getResourcesByIdPrefix(
 export async function createResource(
   config: PermisoConfig,
   input: CreateResourceInput,
-): Promise<Result<Resource, Error>> {
+): Promise<Result<Resource>> {
   const mutation = `
     mutation CreateResource($input: CreateResourceInput!) {
       createResource(input: $input) {
         id
-        orgId
+        tenantId
         name
         description
         createdAt
@@ -200,12 +199,12 @@ export async function updateResource(
   config: PermisoConfig,
   resourceId: string,
   input: UpdateResourceInput,
-): Promise<Result<Resource, Error>> {
+): Promise<Result<Resource>> {
   const mutation = `
     mutation UpdateResource($resourceId: ID!, $input: UpdateResourceInput!) {
       updateResource(resourceId: $resourceId, input: $input) {
         id
-        orgId
+        tenantId
         name
         description
         createdAt
@@ -236,7 +235,7 @@ export async function updateResource(
 export async function deleteResource(
   config: PermisoConfig,
   resourceId: string,
-): Promise<Result<boolean, Error>> {
+): Promise<Result<boolean>> {
   const mutation = `
     mutation DeleteResource($resourceId: ID!) {
       deleteResource(resourceId: $resourceId)

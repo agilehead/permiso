@@ -7,7 +7,7 @@
 import { createSchema } from "@tinqerjs/tinqer";
 
 // Database row types (match SQLite table schemas)
-export type OrganizationRow = {
+export type TenantRow = {
   id: string;
   name: string;
   description: string | null;
@@ -15,7 +15,7 @@ export type OrganizationRow = {
   updated_at: number;
 };
 
-export type OrganizationPropertyRow = {
+export type TenantPropertyRow = {
   parent_id: string;
   name: string;
   value: string; // JSON stringified
@@ -25,7 +25,7 @@ export type OrganizationPropertyRow = {
 
 export type UserRow = {
   id: string;
-  org_id: string;
+  tenant_id: string;
   identity_provider: string;
   identity_provider_user_id: string;
   created_at: number;
@@ -34,7 +34,7 @@ export type UserRow = {
 
 export type UserPropertyRow = {
   parent_id: string;
-  org_id: string;
+  tenant_id: string;
   name: string;
   value: string; // JSON stringified
   hidden: number; // SQLite boolean (0/1)
@@ -43,7 +43,7 @@ export type UserPropertyRow = {
 
 export type RoleRow = {
   id: string;
-  org_id: string;
+  tenant_id: string;
   name: string;
   description: string | null;
   created_at: number;
@@ -52,7 +52,7 @@ export type RoleRow = {
 
 export type RolePropertyRow = {
   parent_id: string;
-  org_id: string;
+  tenant_id: string;
   name: string;
   value: string; // JSON stringified
   hidden: number; // SQLite boolean (0/1)
@@ -61,7 +61,7 @@ export type RolePropertyRow = {
 
 export type ResourceRow = {
   id: string;
-  org_id: string;
+  tenant_id: string;
   name: string | null;
   description: string | null;
   created_at: number;
@@ -71,13 +71,13 @@ export type ResourceRow = {
 export type UserRoleRow = {
   user_id: string;
   role_id: string;
-  org_id: string;
+  tenant_id: string;
   created_at: number;
 };
 
 export type UserPermissionRow = {
   user_id: string;
-  org_id: string;
+  tenant_id: string;
   resource_id: string;
   action: string;
   created_at: number;
@@ -85,7 +85,7 @@ export type UserPermissionRow = {
 
 export type RolePermissionRow = {
   role_id: string;
-  org_id: string;
+  tenant_id: string;
   resource_id: string;
   action: string;
   created_at: number;
@@ -93,8 +93,8 @@ export type RolePermissionRow = {
 
 // Database schema definition for Tinqer
 export type DatabaseSchema = {
-  organization: OrganizationRow;
-  organization_property: OrganizationPropertyRow;
+  tenant: TenantRow;
+  tenant_property: TenantPropertyRow;
   user: UserRow;
   user_property: UserPropertyRow;
   role: RoleRow;

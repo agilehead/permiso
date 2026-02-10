@@ -1,6 +1,7 @@
+import { dirname } from "path";
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb } from "../index.js";
+import { testDb, truncateAllTables } from "../index.js";
 import { GraphQLClient } from "../utils/graphql-client.js";
 import { TestServer } from "@codespin/permiso-test-utils";
 
@@ -13,7 +14,7 @@ describe("Bearer Authentication", () => {
     this.timeout(60000);
 
     // Start a server with API key authentication enabled
-    authServer = new TestServer({ port: 5003, dbName: "permiso_test" });
+    authServer = new TestServer({ port: 5003, dataDir: dirname(testDb.dbPath) });
 
     // Set API key for test server
     process.env.PERMISO_API_KEY = "test-secret-key-123";
@@ -25,13 +26,13 @@ describe("Bearer Authentication", () => {
     authClient = new GraphQLClient("http://localhost:5003/graphql", {
       headers: {
         authorization: "Bearer test-secret-key-123",
-        // No x-org-id header = ROOT context
+        // No x-tenant-id header = ROOT context
       },
     });
 
     unauthClient = new GraphQLClient("http://localhost:5003/graphql", {
       headers: {
-        // No x-org-id header = ROOT context
+        // No x-tenant-id header = ROOT context
       },
     });
   });
@@ -43,20 +44,20 @@ describe("Bearer Authentication", () => {
     delete process.env.PERMISO_API_KEY;
     delete process.env.PERMISO_API_KEY_ENABLED;
 
-    if (authClient) await authClient.stop();
-    if (unauthClient) await unauthClient.stop();
-    if (authServer) await authServer.stop();
+    await authClient.stop();
+    await unauthClient.stop();
+    await authServer.stop();
   });
 
-  beforeEach(async () => {
-    await testDb.truncateAllTables();
+  beforeEach(() => {
+    truncateAllTables(testDb);
   });
 
   describe("with Bearer authentication enabled", () => {
     it("should allow requests with valid Bearer token", async () => {
       const query = gql`
         query {
-          organizations {
+          tenants {
             nodes {
               id
               name
@@ -68,13 +69,13 @@ describe("Bearer Authentication", () => {
 
       const result = await authClient.query(query);
       expect(result.data).to.exist;
-      expect(result.data.organizations.nodes).to.be.an("array");
+      expect(result.data.tenants.nodes).to.be.an("array");
     });
 
     it("should reject requests without Bearer token", async () => {
       const query = gql`
         query {
-          organizations {
+          tenants {
             nodes {
               id
               name
@@ -109,7 +110,7 @@ describe("Bearer Authentication", () => {
 
       const query = gql`
         query {
-          organizations {
+          tenants {
             nodes {
               id
               name
@@ -139,8 +140,8 @@ describe("Bearer Authentication", () => {
 
     it("should allow mutations with valid Bearer token", async () => {
       const mutation = gql`
-        mutation CreateOrganization($input: CreateOrganizationInput!) {
-          createOrganization(input: $input) {
+        mutation CreateTenant($input: CreateTenantInput!) {
+          createTenant(input: $input) {
             id
             name
           }
@@ -150,21 +151,21 @@ describe("Bearer Authentication", () => {
       const result = await authClient.mutate(mutation, {
         input: {
           id: "org-auth-test",
-          name: "Auth Test Organization",
+          name: "Auth Test Tenant",
         },
       });
 
-      expect(result.data?.createOrganization).to.exist;
-      expect(result.data?.createOrganization.id).to.equal("org-auth-test");
-      expect(result.data?.createOrganization.name).to.equal(
-        "Auth Test Organization",
+      expect(result.data?.createTenant).to.exist;
+      expect(result.data?.createTenant.id).to.equal("org-auth-test");
+      expect(result.data?.createTenant.name).to.equal(
+        "Auth Test Tenant",
       );
     });
 
     it("should reject mutations without Bearer token", async () => {
       const mutation = gql`
-        mutation CreateOrganization($input: CreateOrganizationInput!) {
-          createOrganization(input: $input) {
+        mutation CreateTenant($input: CreateTenantInput!) {
+          createTenant(input: $input) {
             id
             name
           }
@@ -175,7 +176,7 @@ describe("Bearer Authentication", () => {
         await unauthClient.mutate(mutation, {
           input: {
             id: "org-unauth-test",
-            name: "Unauthorized Test Organization",
+            name: "Unauthorized Test Tenant",
           },
         });
         expect.fail("Should have thrown an error");

@@ -1,17 +1,17 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createOrgClient } from "../index.js";
+import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
 
 describe("Resources", () => {
-  const getTestOrgClient = () => createOrgClient("test-org");
+  const getTestTenantClient = () => createTenantClient("test-org");
 
   beforeEach(async () => {
-    await testDb.truncateAllTables();
+    truncateAllTables(testDb);
 
-    // Create test organization using ROOT client
+    // Create test tenant using ROOT client
     const mutation = gql`
-      mutation CreateOrganization($input: CreateOrganizationInput!) {
-        createOrganization(input: $input) {
+      mutation CreateTenant($input: CreateTenantInput!) {
+        createTenant(input: $input) {
           id
         }
       }
@@ -20,26 +20,26 @@ describe("Resources", () => {
     await rootClient.mutate(mutation, {
       input: {
         id: "test-org",
-        name: "Test Organization",
+        name: "Test Tenant",
       },
     });
   });
 
   describe("createResource", () => {
     it("should create a new resource", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       const mutation = gql`
         mutation CreateResource($input: CreateResourceInput!) {
           createResource(input: $input) {
             id
-            orgId
+            tenantId
             name
             description
           }
         }
       `;
 
-      const result = await testOrgClient.mutate(mutation, {
+      const result = await testTenantClient.mutate(mutation, {
         input: {
           id: "/api/users/*",
           name: "User API",
@@ -49,14 +49,14 @@ describe("Resources", () => {
 
       const resource = result.data?.createResource;
       expect(resource?.id).to.equal("/api/users/*");
-      expect(resource?.orgId).to.equal("test-org");
+      expect(resource?.tenantId).to.equal("test-org");
       expect(resource?.name).to.equal("User API");
       expect(resource?.description).to.equal("User management endpoints");
     });
 
-    it("should fail when trying to access non-existent organization", async () => {
-      // Switch to a non-existent organization context
-      const nonExistentOrgClient = createOrgClient("non-existent-org");
+    it("should fail when trying to access non-existent tenant", async () => {
+      // Switch to a non-existent tenant context
+      const nonExistentTenantClient = createTenantClient("non-existent-org");
 
       const mutation = gql`
         mutation CreateResource($input: CreateResourceInput!) {
@@ -67,7 +67,7 @@ describe("Resources", () => {
       `;
 
       try {
-        const result = await nonExistentOrgClient.mutate(mutation, {
+        const result = await nonExistentTenantClient.mutate(mutation, {
           input: {
             id: "/api/users/*",
             name: "User API",
@@ -82,7 +82,7 @@ describe("Resources", () => {
               msg.includes("foreign key violation") ||
               msg.includes("is not present in table") ||
               msg.includes("constraint") ||
-              msg.includes("organization") ||
+              msg.includes("tenant") ||
               msg.includes("not found"),
           );
         } else {
@@ -91,13 +91,13 @@ describe("Resources", () => {
       } catch (error: any) {
         // If an exception was thrown, check it
         const errorMessage =
-          error.graphQLErrors?.[0]?.message || error.message || "";
+          error.graphQLErrors?.[0]?.message ?? error.message ?? "";
         expect(errorMessage.toLowerCase()).to.satisfy(
           (msg: string) =>
             msg.includes("foreign key violation") ||
             msg.includes("is not present in table") ||
             msg.includes("constraint") ||
-            msg.includes("organization") ||
+            msg.includes("tenant") ||
             msg.includes("not found"),
         );
       }
@@ -105,8 +105,8 @@ describe("Resources", () => {
   });
 
   describe("resources query", () => {
-    it("should list resources in an organization", async () => {
-      const testOrgClient = getTestOrgClient();
+    it("should list resources in a tenant", async () => {
+      const testTenantClient = getTestTenantClient();
       const createResourceMutation = gql`
         mutation CreateResource($input: CreateResourceInput!) {
           createResource(input: $input) {
@@ -116,14 +116,14 @@ describe("Resources", () => {
       `;
 
       // Create multiple resources
-      await testOrgClient.mutate(createResourceMutation, {
+      await testTenantClient.mutate(createResourceMutation, {
         input: {
           id: "/api/users/*",
           name: "User API",
         },
       });
 
-      await testOrgClient.mutate(createResourceMutation, {
+      await testTenantClient.mutate(createResourceMutation, {
         input: {
           id: "/api/roles/*",
           name: "Role API",
@@ -136,7 +136,7 @@ describe("Resources", () => {
           resources {
             nodes {
               id
-              orgId
+              tenantId
               name
               description
             }
@@ -144,7 +144,7 @@ describe("Resources", () => {
         }
       `;
 
-      const result = await testOrgClient.query(query, {});
+      const result = await testTenantClient.query(query, {});
 
       expect(result.data?.resources?.nodes).to.have.lengthOf(2);
       const resourceIds = result.data?.resources?.nodes.map((r: any) => r.id);
@@ -153,8 +153,8 @@ describe("Resources", () => {
   });
 
   describe("resource query", () => {
-    it("should retrieve a resource by orgId and resourceId", async () => {
-      const testOrgClient = getTestOrgClient();
+    it("should retrieve a resource by tenant and resourceId", async () => {
+      const testTenantClient = getTestTenantClient();
       // Create resource
       const createMutation = gql`
         mutation CreateResource($input: CreateResourceInput!) {
@@ -164,7 +164,7 @@ describe("Resources", () => {
         }
       `;
 
-      await testOrgClient.mutate(createMutation, {
+      await testTenantClient.mutate(createMutation, {
         input: {
           id: "/api/users/*",
           name: "User API",
@@ -177,7 +177,7 @@ describe("Resources", () => {
         query GetResource($resourceId: ID!) {
           resource(resourceId: $resourceId) {
             id
-            orgId
+            tenantId
             name
             description
             createdAt
@@ -186,7 +186,7 @@ describe("Resources", () => {
         }
       `;
 
-      const result = await testOrgClient.query(query, {
+      const result = await testTenantClient.query(query, {
         resourceId: "/api/users/*",
       });
 
@@ -198,7 +198,7 @@ describe("Resources", () => {
 
   describe("updateResource", () => {
     it("should update resource details", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       // Create resource
       const createMutation = gql`
         mutation CreateResource($input: CreateResourceInput!) {
@@ -208,7 +208,7 @@ describe("Resources", () => {
         }
       `;
 
-      await testOrgClient.mutate(createMutation, {
+      await testTenantClient.mutate(createMutation, {
         input: {
           id: "/api/users/*",
           name: "User API",
@@ -229,7 +229,7 @@ describe("Resources", () => {
         }
       `;
 
-      const result = await testOrgClient.mutate(updateMutation, {
+      const result = await testTenantClient.mutate(updateMutation, {
         resourceId: "/api/users/*",
         input: {
           name: "User API v2",
@@ -247,7 +247,7 @@ describe("Resources", () => {
 
   describe("deleteResource", () => {
     it("should delete a resource", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       // Create resource
       const createMutation = gql`
         mutation CreateResource($input: CreateResourceInput!) {
@@ -257,7 +257,7 @@ describe("Resources", () => {
         }
       `;
 
-      await testOrgClient.mutate(createMutation, {
+      await testTenantClient.mutate(createMutation, {
         input: {
           id: "/api/users/*",
           name: "User API",
@@ -271,7 +271,7 @@ describe("Resources", () => {
         }
       `;
 
-      const result = await testOrgClient.mutate(deleteMutation, {
+      const result = await testTenantClient.mutate(deleteMutation, {
         resourceId: "/api/users/*",
       });
 
@@ -286,7 +286,7 @@ describe("Resources", () => {
         }
       `;
 
-      const queryResult = await testOrgClient.query(query, {
+      const queryResult = await testTenantClient.query(query, {
         resourceId: "/api/users/*",
       });
 

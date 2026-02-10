@@ -1,19 +1,19 @@
 import type { RoleWithProperties } from "../../types.js";
 import { getRoleProperties } from "../../domain/role/get-role-properties.js";
-import { getRoleUsersByOrg } from "../../domain/role/get-role-users-by-org.js";
-import { getUsersByOrg } from "../../domain/user/get-users-by-org.js";
+import { getRoleUsersByTenant } from "../../domain/role/get-role-users-by-tenant.js";
+import { getUsersByTenant } from "../../domain/user/get-users-by-tenant.js";
 import { getRolePermissions } from "../../domain/permission/get-role-permissions.js";
-import { getOrganization } from "../../domain/organization/get-organization.js";
-import { DataContext } from "../../domain/data-context.js";
+import { getTenant } from "../../domain/tenant/get-tenant.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const roleFieldResolvers = {
   Role: {
-    organization: async (
+    tenant: async (
       parent: RoleWithProperties,
       _: unknown,
       context: DataContext,
     ) => {
-      const result = await getOrganization(context, parent.orgId);
+      const result = await getTenant(context, parent.tenantId);
       if (!result.success) {
         throw result.error;
       }
@@ -37,10 +37,10 @@ export const roleFieldResolvers = {
       _: unknown,
       context: DataContext,
     ) => {
-      // Use parent.orgId instead of context.orgId to work with ROOT queries
-      const userIdsResult = await getRoleUsersByOrg(
+      // Use parent.tenantId instead of context.tenantId to work with ROOT queries
+      const userIdsResult = await getRoleUsersByTenant(
         context,
-        parent.orgId,
+        parent.tenantId,
         parent.id,
       );
       if (!userIdsResult.success) {
@@ -51,7 +51,7 @@ export const roleFieldResolvers = {
         return [];
       }
 
-      const result = await getUsersByOrg(context, parent.orgId, {
+      const result = await getUsersByTenant(context, parent.tenantId, {
         ids: userIdsResult.data,
       });
       if (!result.success) {
@@ -70,7 +70,7 @@ export const roleFieldResolvers = {
         parent.id,
         args.resourcePath,
         undefined,
-        parent.orgId,
+        parent.tenantId,
       );
       if (!result.success) {
         throw result.error;

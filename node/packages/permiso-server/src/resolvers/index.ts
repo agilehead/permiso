@@ -1,16 +1,16 @@
 import { scalarResolvers } from "./scalars.js";
 
 import {
-  getOrganizationResolver,
-  getOrganizationsResolver,
-  createOrganizationResolver,
-  updateOrganizationResolver,
-  deleteOrganizationResolver,
-  getOrganizationPropertyResolver,
-  setOrganizationPropertyResolver,
-  deleteOrganizationPropertyResolver,
-  organizationFieldResolvers,
-} from "./organization/index.js";
+  getTenantResolver,
+  getTenantsResolver,
+  createTenantResolver,
+  updateTenantResolver,
+  deleteTenantResolver,
+  getTenantPropertyResolver,
+  setTenantPropertyResolver,
+  deleteTenantPropertyResolver,
+  tenantFieldResolvers,
+} from "./tenant/index.js";
 
 import {
   getUserResolver,
@@ -62,7 +62,9 @@ import {
   permissionFieldResolvers,
 } from "./permission/index.js";
 
-function mergeResolvers(...resolvers: unknown[]) {
+function mergeResolvers(
+  ...resolvers: unknown[]
+): Record<string, unknown> {
   const merged: Record<string, unknown> = {
     Query: {},
     Mutation: {},
@@ -70,16 +72,16 @@ function mergeResolvers(...resolvers: unknown[]) {
 
   for (const resolver of resolvers) {
     const resolverObj = resolver as Record<string, unknown>;
-    if (resolverObj.Query) {
+    if (resolverObj.Query !== undefined) {
       Object.assign(merged.Query as Record<string, unknown>, resolverObj.Query);
     }
-    if (resolverObj.Mutation) {
+    if (resolverObj.Mutation !== undefined) {
       Object.assign(
         merged.Mutation as Record<string, unknown>,
         resolverObj.Mutation,
       );
     }
-    // Copy field resolvers (like User, Organization, etc.)
+    // Copy field resolvers (like User, Tenant, etc.)
     for (const key of Object.keys(resolverObj)) {
       if (key !== "Query" && key !== "Mutation") {
         merged[key] = resolverObj[key];
@@ -94,16 +96,16 @@ export const resolvers = mergeResolvers(
   // Scalar resolvers
   scalarResolvers,
 
-  // Organization resolvers
-  getOrganizationResolver,
-  getOrganizationsResolver,
-  createOrganizationResolver,
-  updateOrganizationResolver,
-  deleteOrganizationResolver,
-  getOrganizationPropertyResolver,
-  setOrganizationPropertyResolver,
-  deleteOrganizationPropertyResolver,
-  organizationFieldResolvers,
+  // Tenant resolvers
+  getTenantResolver,
+  getTenantsResolver,
+  createTenantResolver,
+  updateTenantResolver,
+  deleteTenantResolver,
+  getTenantPropertyResolver,
+  setTenantPropertyResolver,
+  deleteTenantPropertyResolver,
+  tenantFieldResolvers,
 
   // User resolvers
   getUserResolver,

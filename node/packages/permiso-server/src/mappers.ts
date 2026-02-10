@@ -1,7 +1,7 @@
 import { typeUtils } from "@codespin/permiso-core";
 import type {
-  Organization,
-  OrganizationDbRow,
+  Tenant,
+  TenantDbRow,
   Property,
   PropertyDbRow,
   Role,
@@ -12,17 +12,17 @@ import type {
   ResourceDbRow,
   UserRole,
   UserRoleDbRow,
-  UserPermissionWithOrgId,
+  UserPermissionWithTenantId,
   UserPermissionDbRow,
-  RolePermissionWithOrgId,
+  RolePermissionWithTenantId,
   RolePermissionDbRow,
 } from "./types.js";
 
-// Organization mappers
-export function mapOrganizationFromDb(row: OrganizationDbRow): Organization {
+// Tenant mappers
+export function mapTenantFromDb(row: TenantDbRow): Tenant {
   return {
     ...typeUtils.toCamelCase(row),
-    __typename: "Organization",
+    __typename: "Tenant",
     // These will be populated by GraphQL resolvers
     properties: [],
     resources: {
@@ -66,7 +66,7 @@ export function mapOrganizationFromDb(row: OrganizationDbRow): Organization {
 
 // Unified Property mapper
 export function mapPropertyFromDb(row: PropertyDbRow): Property {
-  // Cannot use toCamelCase here because PropertyDbRow has parent_id and org_id
+  // Cannot use toCamelCase here because PropertyDbRow has parent_id and tenant_id
   // which are not part of the Property type
   return {
     name: row.name,
@@ -77,7 +77,7 @@ export function mapPropertyFromDb(row: PropertyDbRow): Property {
 }
 
 // Legacy mappers for backward compatibility
-export const mapOrganizationPropertyFromDb = mapPropertyFromDb;
+export const mapTenantPropertyFromDb = mapPropertyFromDb;
 export const mapRolePropertyFromDb = mapPropertyFromDb;
 export const mapUserPropertyFromDb = mapPropertyFromDb;
 
@@ -86,7 +86,7 @@ export function mapRoleFromDb(row: RoleDbRow): Role {
   return {
     ...typeUtils.toCamelCase(row),
     __typename: "Role",
-    // organization, permissions, properties, users
+    // tenant, permissions, properties, users
     // are NOT set here - they must be populated by GraphQL field resolvers
   } as Role;
 }
@@ -96,7 +96,7 @@ export function mapUserFromDb(row: UserDbRow): User {
   return {
     ...typeUtils.toCamelCase(row),
     __typename: "User",
-    // organization, roles, permissions, properties, effectivePermissions
+    // tenant, roles, permissions, properties, effectivePermissions
     // are NOT set here - they must be populated by GraphQL field resolvers
   } as User;
 }
@@ -106,7 +106,7 @@ export function mapResourceFromDb(row: ResourceDbRow): Resource {
   return {
     ...typeUtils.toCamelCase(row),
     __typename: "Resource",
-    // organization, permissions
+    // tenant, permissions
     // are NOT set here - they must be populated by GraphQL field resolvers
   } as Resource;
 }
@@ -123,12 +123,12 @@ export function mapUserRoleToDb(userRole: UserRole): UserRoleDbRow {
 // User Permission mappers
 export function mapUserPermissionFromDb(
   row: UserPermissionDbRow,
-): UserPermissionWithOrgId {
+): UserPermissionWithTenantId {
   return typeUtils.toCamelCase(row);
 }
 
 export function mapUserPermissionToDb(
-  perm: UserPermissionWithOrgId,
+  perm: UserPermissionWithTenantId,
 ): UserPermissionDbRow {
   return typeUtils.toSnakeCase(perm);
 }
@@ -136,12 +136,12 @@ export function mapUserPermissionToDb(
 // Role Permission mappers
 export function mapRolePermissionFromDb(
   row: RolePermissionDbRow,
-): RolePermissionWithOrgId {
+): RolePermissionWithTenantId {
   return typeUtils.toCamelCase(row);
 }
 
 export function mapRolePermissionToDb(
-  perm: RolePermissionWithOrgId,
+  perm: RolePermissionWithTenantId,
 ): RolePermissionDbRow {
   return typeUtils.toSnakeCase(perm);
 }

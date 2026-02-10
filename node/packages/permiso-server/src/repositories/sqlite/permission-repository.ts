@@ -13,7 +13,7 @@ import {
   executeInsert,
 } from "@tinqerjs/better-sqlite3-adapter";
 import type { Database } from "better-sqlite3";
-import { schema } from "../tinqer-schema.js";
+import { schema } from "./tinqer-schema.js";
 import type {
   IPermissionRepository,
   UserPermission,
@@ -27,14 +27,14 @@ const logger = createLogger("permiso-server:repos:sqlite:permission");
 
 function mapUserPermissionFromDb(row: {
   user_id: string;
-  org_id: string;
+  tenant_id: string;
   resource_id: string;
   action: string;
   created_at: number;
 }): UserPermission {
   return {
     userId: row.user_id,
-    orgId: row.org_id,
+    tenantId: row.tenant_id,
     resourceId: row.resource_id,
     action: row.action,
     createdAt: row.created_at,
@@ -43,14 +43,14 @@ function mapUserPermissionFromDb(row: {
 
 function mapRolePermissionFromDb(row: {
   role_id: string;
-  org_id: string;
+  tenant_id: string;
   resource_id: string;
   action: string;
   created_at: number;
 }): RolePermission {
   return {
     roleId: row.role_id,
-    orgId: row.org_id,
+    tenantId: row.tenant_id,
     resourceId: row.resource_id,
     action: row.action,
     createdAt: row.created_at,
@@ -71,11 +71,12 @@ function matchesPattern(pattern: string, resourceId: string): boolean {
 
 export function createPermissionRepository(
   db: Database,
-  _orgId: string,
+  _tenantId: string,
 ): IPermissionRepository {
   return {
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async grantUserPermission(
-      inputOrgId: string,
+      inputTenantId: string,
       userId: string,
       input: GrantPermissionInput,
     ): Promise<Result<UserPermission>> {
@@ -88,7 +89,7 @@ export function createPermissionRepository(
             q,
             p: {
               userId: string;
-              orgId: string;
+              tenantId: string;
               resourceId: string;
               action: string;
               createdAt: number;
@@ -98,21 +99,21 @@ export function createPermissionRepository(
               .insertInto("user_permission")
               .values({
                 user_id: p.userId,
-                org_id: p.orgId,
+                tenant_id: p.tenantId,
                 resource_id: p.resourceId,
                 action: p.action,
                 created_at: p.createdAt,
               })
               .onConflict(
                 (up) => up.user_id,
-                (up) => up.org_id,
+                (up) => up.tenant_id,
                 (up) => up.resource_id,
                 (up) => up.action,
               )
               .doNothing(),
           {
             userId,
-            orgId: inputOrgId,
+            tenantId: inputTenantId,
             resourceId: input.resourceId,
             action: input.action,
             createdAt: now,
@@ -123,7 +124,7 @@ export function createPermissionRepository(
           success: true,
           data: {
             userId,
-            orgId: inputOrgId,
+            tenantId: inputTenantId,
             resourceId: input.resourceId,
             action: input.action,
             createdAt: now,
@@ -139,8 +140,9 @@ export function createPermissionRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async revokeUserPermission(
-      inputOrgId: string,
+      inputTenantId: string,
       userId: string,
       resourceId: string,
       action: string,
@@ -153,7 +155,7 @@ export function createPermissionRepository(
             q,
             p: {
               userId: string;
-              orgId: string;
+              tenantId: string;
               resourceId: string;
               action: string;
             },
@@ -163,11 +165,11 @@ export function createPermissionRepository(
               .where(
                 (up) =>
                   up.user_id === p.userId &&
-                  up.org_id === p.orgId &&
+                  up.tenant_id === p.tenantId &&
                   up.resource_id === p.resourceId &&
                   up.action === p.action,
               ),
-          { userId, orgId: inputOrgId, resourceId, action },
+          { userId, tenantId: inputTenantId, resourceId, action },
         );
         return { success: true, data: true };
       } catch (error) {
@@ -181,19 +183,20 @@ export function createPermissionRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async getUserPermissions(
-      inputOrgId: string,
+      inputTenantId: string,
       userId: string,
     ): Promise<Result<UserPermission[]>> {
       try {
         const rows = executeSelect(
           db,
           schema,
-          (q, p: { userId: string; orgId: string }) =>
+          (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_permission")
-              .where((up) => up.user_id === p.userId && up.org_id === p.orgId),
-          { userId, orgId: inputOrgId },
+              .where((up) => up.user_id === p.userId && up.tenant_id === p.tenantId),
+          { userId, tenantId: inputTenantId },
         );
         return { success: true, data: rows.map(mapUserPermissionFromDb) };
       } catch (error) {
@@ -202,8 +205,9 @@ export function createPermissionRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async grantRolePermission(
-      inputOrgId: string,
+      inputTenantId: string,
       roleId: string,
       input: GrantPermissionInput,
     ): Promise<Result<RolePermission>> {
@@ -216,7 +220,7 @@ export function createPermissionRepository(
             q,
             p: {
               roleId: string;
-              orgId: string;
+              tenantId: string;
               resourceId: string;
               action: string;
               createdAt: number;
@@ -226,21 +230,21 @@ export function createPermissionRepository(
               .insertInto("role_permission")
               .values({
                 role_id: p.roleId,
-                org_id: p.orgId,
+                tenant_id: p.tenantId,
                 resource_id: p.resourceId,
                 action: p.action,
                 created_at: p.createdAt,
               })
               .onConflict(
                 (rp) => rp.role_id,
-                (rp) => rp.org_id,
+                (rp) => rp.tenant_id,
                 (rp) => rp.resource_id,
                 (rp) => rp.action,
               )
               .doNothing(),
           {
             roleId,
-            orgId: inputOrgId,
+            tenantId: inputTenantId,
             resourceId: input.resourceId,
             action: input.action,
             createdAt: now,
@@ -251,7 +255,7 @@ export function createPermissionRepository(
           success: true,
           data: {
             roleId,
-            orgId: inputOrgId,
+            tenantId: inputTenantId,
             resourceId: input.resourceId,
             action: input.action,
             createdAt: now,
@@ -267,8 +271,9 @@ export function createPermissionRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async revokeRolePermission(
-      inputOrgId: string,
+      inputTenantId: string,
       roleId: string,
       resourceId: string,
       action: string,
@@ -276,11 +281,11 @@ export function createPermissionRepository(
       try {
         // Use raw SQL to get the number of affected rows
         const stmt = db.prepare(
-          `DELETE FROM role_permission WHERE role_id = @roleId AND org_id = @orgId AND resource_id = @resourceId AND action = @action`,
+          `DELETE FROM role_permission WHERE role_id = @roleId AND tenant_id = @tenantId AND resource_id = @resourceId AND action = @action`,
         );
         const result = stmt.run({
           roleId,
-          orgId: inputOrgId,
+          tenantId: inputTenantId,
           resourceId,
           action,
         });
@@ -296,19 +301,20 @@ export function createPermissionRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async getRolePermissions(
-      inputOrgId: string,
+      inputTenantId: string,
       roleId: string,
     ): Promise<Result<RolePermission[]>> {
       try {
         const rows = executeSelect(
           db,
           schema,
-          (q, p: { roleId: string; orgId: string }) =>
+          (q, p: { roleId: string; tenantId: string }) =>
             q
               .from("role_permission")
-              .where((rp) => rp.role_id === p.roleId && rp.org_id === p.orgId),
-          { roleId, orgId: inputOrgId },
+              .where((rp) => rp.role_id === p.roleId && rp.tenant_id === p.tenantId),
+          { roleId, tenantId: inputTenantId },
         );
         return { success: true, data: rows.map(mapRolePermissionFromDb) };
       } catch (error) {
@@ -317,8 +323,9 @@ export function createPermissionRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async getPermissionsByResource(
-      inputOrgId: string,
+      inputTenantId: string,
       resourceId: string,
     ): Promise<
       Result<{
@@ -330,26 +337,26 @@ export function createPermissionRepository(
         const userRows = executeSelect(
           db,
           schema,
-          (q, p: { resourceId: string; orgId: string }) =>
+          (q, p: { resourceId: string; tenantId: string }) =>
             q
               .from("user_permission")
               .where(
                 (up) =>
-                  up.resource_id === p.resourceId && up.org_id === p.orgId,
+                  up.resource_id === p.resourceId && up.tenant_id === p.tenantId,
               ),
-          { resourceId, orgId: inputOrgId },
+          { resourceId, tenantId: inputTenantId },
         );
         const roleRows = executeSelect(
           db,
           schema,
-          (q, p: { resourceId: string; orgId: string }) =>
+          (q, p: { resourceId: string; tenantId: string }) =>
             q
               .from("role_permission")
               .where(
                 (rp) =>
-                  rp.resource_id === p.resourceId && rp.org_id === p.orgId,
+                  rp.resource_id === p.resourceId && rp.tenant_id === p.tenantId,
               ),
-          { resourceId, orgId: inputOrgId },
+          { resourceId, tenantId: inputTenantId },
         );
 
         return {
@@ -368,8 +375,9 @@ export function createPermissionRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async getEffectivePermissions(
-      inputOrgId: string,
+      inputTenantId: string,
       userId: string,
       resourceId?: string,
       action?: string,
@@ -379,11 +387,11 @@ export function createPermissionRepository(
         const userRoles = executeSelect(
           db,
           schema,
-          (q, p: { userId: string; orgId: string }) =>
+          (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_role")
-              .where((ur) => ur.user_id === p.userId && ur.org_id === p.orgId),
-          { userId, orgId: inputOrgId },
+              .where((ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId),
+          { userId, tenantId: inputTenantId },
         );
         const roleIds = userRoles.map((r) => r.role_id);
 
@@ -393,23 +401,23 @@ export function createPermissionRepository(
         const userPerms = executeSelect(
           db,
           schema,
-          (q, p: { userId: string; orgId: string }) =>
+          (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_permission")
-              .where((up) => up.user_id === p.userId && up.org_id === p.orgId),
-          { userId, orgId: inputOrgId },
+              .where((up) => up.user_id === p.userId && up.tenant_id === p.tenantId),
+          { userId, tenantId: inputTenantId },
         );
 
         for (const perm of userPerms) {
           // Apply filters in application code
           if (
-            resourceId &&
+            resourceId !== undefined &&
             !matchesPattern(perm.resource_id, resourceId) &&
             perm.resource_id !== resourceId
           ) {
             continue;
           }
-          if (action && perm.action !== action && perm.action !== "*") {
+          if (action !== undefined && perm.action !== action && perm.action !== "*") {
             continue;
           }
 
@@ -427,25 +435,25 @@ export function createPermissionRepository(
           const rolePerms = executeSelect(
             db,
             schema,
-            (q, p: { roleId: string; orgId: string }) =>
+            (q, p: { roleId: string; tenantId: string }) =>
               q
                 .from("role_permission")
                 .where(
-                  (rp) => rp.role_id === p.roleId && rp.org_id === p.orgId,
+                  (rp) => rp.role_id === p.roleId && rp.tenant_id === p.tenantId,
                 ),
-            { roleId, orgId: inputOrgId },
+            { roleId, tenantId: inputTenantId },
           );
 
           for (const perm of rolePerms) {
             // Apply filters in application code
             if (
-              resourceId &&
+              resourceId !== undefined &&
               !matchesPattern(perm.resource_id, resourceId) &&
               perm.resource_id !== resourceId
             ) {
               continue;
             }
-            if (action && perm.action !== action && perm.action !== "*") {
+            if (action !== undefined && perm.action !== action && perm.action !== "*") {
               continue;
             }
 
@@ -466,8 +474,9 @@ export function createPermissionRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async hasPermission(
-      inputOrgId: string,
+      inputTenantId: string,
       userId: string,
       resourceId: string,
       action: string,
@@ -477,11 +486,11 @@ export function createPermissionRepository(
         const userPerms = executeSelect(
           db,
           schema,
-          (q, p: { userId: string; orgId: string }) =>
+          (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_permission")
-              .where((up) => up.user_id === p.userId && up.org_id === p.orgId),
-          { userId, orgId: inputOrgId },
+              .where((up) => up.user_id === p.userId && up.tenant_id === p.tenantId),
+          { userId, tenantId: inputTenantId },
         );
 
         for (const perm of userPerms) {
@@ -498,11 +507,11 @@ export function createPermissionRepository(
         const userRoles = executeSelect(
           db,
           schema,
-          (q, p: { userId: string; orgId: string }) =>
+          (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_role")
-              .where((ur) => ur.user_id === p.userId && ur.org_id === p.orgId),
-          { userId, orgId: inputOrgId },
+              .where((ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId),
+          { userId, tenantId: inputTenantId },
         );
         const roleIds = userRoles.map((r) => r.role_id);
 
@@ -511,13 +520,13 @@ export function createPermissionRepository(
           const rolePerms = executeSelect(
             db,
             schema,
-            (q, p: { roleId: string; orgId: string }) =>
+            (q, p: { roleId: string; tenantId: string }) =>
               q
                 .from("role_permission")
                 .where(
-                  (rp) => rp.role_id === p.roleId && rp.org_id === p.orgId,
+                  (rp) => rp.role_id === p.roleId && rp.tenant_id === p.tenantId,
                 ),
-            { roleId, orgId: inputOrgId },
+            { roleId, tenantId: inputTenantId },
           );
 
           for (const perm of rolePerms) {
@@ -543,8 +552,9 @@ export function createPermissionRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async getEffectivePermissionsByPrefix(
-      inputOrgId: string,
+      inputTenantId: string,
       userId: string,
       resourceIdPrefix: string,
     ): Promise<Result<EffectivePermission[]>> {
@@ -553,11 +563,11 @@ export function createPermissionRepository(
         const userRoles = executeSelect(
           db,
           schema,
-          (q, p: { userId: string; orgId: string }) =>
+          (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_role")
-              .where((ur) => ur.user_id === p.userId && ur.org_id === p.orgId),
-          { userId, orgId: inputOrgId },
+              .where((ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId),
+          { userId, tenantId: inputTenantId },
         );
         const roleIds = userRoles.map((r) => r.role_id);
 
@@ -566,20 +576,20 @@ export function createPermissionRepository(
         // Get direct user permissions matching prefix (use raw SQL for LIKE)
         const userPermsStmt = db.prepare(
           `SELECT * FROM user_permission
-           WHERE user_id = @userId AND org_id = @orgId
+           WHERE user_id = @userId AND tenant_id = @tenantId
            AND resource_id LIKE @prefix`,
         );
         const userPerms = userPermsStmt.all({
           userId,
-          orgId: inputOrgId,
+          tenantId: inputTenantId,
           prefix: `${resourceIdPrefix}%`,
-        }) as Array<{
+        }) as {
           user_id: string;
-          org_id: string;
+          tenant_id: string;
           resource_id: string;
           action: string;
           created_at: number;
-        }>;
+        }[];
 
         for (const perm of userPerms) {
           permissions.push({
@@ -595,20 +605,20 @@ export function createPermissionRepository(
         for (const roleId of roleIds) {
           const rolePermsStmt = db.prepare(
             `SELECT * FROM role_permission
-             WHERE role_id = @roleId AND org_id = @orgId
+             WHERE role_id = @roleId AND tenant_id = @tenantId
              AND resource_id LIKE @prefix`,
           );
           const rolePerms = rolePermsStmt.all({
             roleId,
-            orgId: inputOrgId,
+            tenantId: inputTenantId,
             prefix: `${resourceIdPrefix}%`,
-          }) as Array<{
+          }) as {
             role_id: string;
-            org_id: string;
+            tenant_id: string;
             resource_id: string;
             action: string;
             created_at: number;
-          }>;
+          }[];
 
           for (const perm of rolePerms) {
             permissions.push({

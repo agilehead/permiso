@@ -1,5 +1,5 @@
 import { grantUserPermission } from "../../domain/permission/grant-user-permission.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const grantUserPermissionResolver = {
   Mutation: {
@@ -7,7 +7,7 @@ export const grantUserPermissionResolver = {
       _: unknown,
       args: {
         input: {
-          orgId: string;
+          tenantId: string;
           userId: string;
           resourceId: string;
           action: string;

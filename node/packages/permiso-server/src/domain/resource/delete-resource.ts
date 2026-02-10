@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 
 const logger = createLogger("permiso-server:resources");
@@ -9,7 +9,7 @@ export async function deleteResource(
   resourceId: string,
 ): Promise<Result<boolean>> {
   try {
-    const result = await ctx.repos.resource.delete(ctx.orgId, resourceId);
+    const result = await ctx.repos.resource.delete(ctx.tenantId, resourceId);
     if (!result.success) {
       return { success: false, error: result.error };
     }

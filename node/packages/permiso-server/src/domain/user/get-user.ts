@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { UserWithProperties, Property } from "../../types.js";
 
@@ -8,11 +8,11 @@ const logger = createLogger("permiso-server:users");
 export async function getUser(
   ctx: DataContext,
   userId: string,
-  orgId?: string,
+  tenantId?: string,
 ): Promise<Result<UserWithProperties | null>> {
   try {
-    const effectiveOrgId = orgId || ctx.orgId;
-    const userResult = await ctx.repos.user.getById(effectiveOrgId, userId);
+    const effectiveTenantId = tenantId ?? ctx.tenantId;
+    const userResult = await ctx.repos.user.getById(effectiveTenantId, userId);
     if (!userResult.success) {
       return userResult;
     }
@@ -22,8 +22,8 @@ export async function getUser(
     }
 
     const [propertiesResult, roleIdsResult] = await Promise.all([
-      ctx.repos.user.getProperties(effectiveOrgId, userId),
-      ctx.repos.user.getRoleIds(effectiveOrgId, userId),
+      ctx.repos.user.getProperties(effectiveTenantId, userId),
+      ctx.repos.user.getRoleIds(effectiveTenantId, userId),
     ]);
 
     if (!propertiesResult.success) {
@@ -33,12 +33,12 @@ export async function getUser(
     const result: UserWithProperties = {
       ...userResult.data,
       roleIds: roleIdsResult.success ? roleIdsResult.data : [],
-      properties: propertiesResult.data.reduce(
+      properties: propertiesResult.data.reduce<Record<string, unknown>>(
         (acc: Record<string, unknown>, prop: Property) => {
           acc[prop.name] = prop.value;
           return acc;
         },
-        {} as Record<string, unknown>,
+        {},
       ),
     };
 

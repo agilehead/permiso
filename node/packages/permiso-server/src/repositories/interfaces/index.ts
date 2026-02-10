@@ -7,7 +7,7 @@
 
 // Import types for use in Repositories type
 import type { IUserRepository } from "./user-repository.js";
-import type { IOrganizationRepository } from "./organization-repository.js";
+import type { ITenantRepository } from "./tenant-repository.js";
 import type { IRoleRepository } from "./role-repository.js";
 import type { IResourceRepository } from "./resource-repository.js";
 import type { IPermissionRepository } from "./permission-repository.js";
@@ -35,14 +35,14 @@ export type {
   IUserRepository,
 } from "./user-repository.js";
 
-// Organization repository
+// Tenant repository
 export type {
-  Organization,
-  OrganizationFilter,
-  CreateOrganizationInput,
-  UpdateOrganizationInput,
-  IOrganizationRepository,
-} from "./organization-repository.js";
+  Tenant,
+  TenantFilter,
+  CreateTenantInput,
+  UpdateTenantInput,
+  ITenantRepository,
+} from "./tenant-repository.js";
 
 // Role repository
 export type {
@@ -74,7 +74,7 @@ export type {
 // Aggregate repository type for factory
 export type Repositories = {
   user: IUserRepository;
-  organization: IOrganizationRepository;
+  tenant: ITenantRepository;
   role: IRoleRepository;
   resource: IResourceRepository;
   permission: IPermissionRepository;
