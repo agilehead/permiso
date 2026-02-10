@@ -1,5 +1,5 @@
 import { deleteUserProperty } from "../../domain/user/delete-user-property.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 // Re-export domain function
 export { deleteUserProperty };

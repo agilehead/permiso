@@ -1,19 +1,19 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createOrgClient } from "../index.js";
+import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
 
 describe("Pagination and Filtering", () => {
-  beforeEach(async () => {
-    await testDb.truncateAllTables();
+  beforeEach(() => {
+    truncateAllTables(testDb);
   });
 
   describe("Pagination", () => {
-    describe("organizations pagination", () => {
+    describe("tenants pagination", () => {
       beforeEach(async () => {
-        // Create multiple organizations
+        // Create multiple tenants
         const mutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
@@ -23,7 +23,7 @@ describe("Pagination and Filtering", () => {
           await rootClient.mutate(mutation, {
             input: {
               id: `org-${i.toString().padStart(2, "0")}`,
-              name: `Organization ${i}`,
+              name: `Tenant ${String(i)}`,
               properties: [
                 { name: "tier", value: i <= 5 ? "free" : "premium" },
                 { name: "size", value: i * 10 },
@@ -33,10 +33,10 @@ describe("Pagination and Filtering", () => {
         }
       });
 
-      it("should paginate organizations with limit", async () => {
+      it("should paginate tenants with limit", async () => {
         const query = gql`
-          query ListOrganizations($pagination: PaginationInput) {
-            organizations(pagination: $pagination) {
+          query ListTenants($pagination: PaginationInput) {
+            tenants(pagination: $pagination) {
               nodes {
                 id
                 name
@@ -54,17 +54,17 @@ describe("Pagination and Filtering", () => {
           pagination: { limit: 3 },
         });
 
-        expect(result.data?.organizations?.nodes).to.have.lengthOf(3);
-        expect(result.data?.organizations?.totalCount).to.equal(10);
-        expect(result.data?.organizations?.pageInfo?.hasNextPage).to.be.true;
-        expect(result.data?.organizations?.pageInfo?.hasPreviousPage).to.be
+        expect(result.data?.tenants?.nodes).to.have.lengthOf(3);
+        expect(result.data?.tenants?.totalCount).to.equal(10);
+        expect(result.data?.tenants?.pageInfo?.hasNextPage).to.be.true;
+        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be
           .false;
       });
 
-      it("should paginate organizations with offset and limit", async () => {
+      it("should paginate tenants with offset and limit", async () => {
         const query = gql`
-          query ListOrganizations($pagination: PaginationInput) {
-            organizations(pagination: $pagination) {
+          query ListTenants($pagination: PaginationInput) {
+            tenants(pagination: $pagination) {
               nodes {
                 id
               }
@@ -81,21 +81,21 @@ describe("Pagination and Filtering", () => {
           pagination: { offset: 5, limit: 3 },
         });
 
-        expect(result.data?.organizations?.nodes).to.have.lengthOf(3);
-        expect(result.data?.organizations?.totalCount).to.equal(10);
-        expect(result.data?.organizations?.pageInfo?.hasNextPage).to.be.true;
-        expect(result.data?.organizations?.pageInfo?.hasPreviousPage).to.be
+        expect(result.data?.tenants?.nodes).to.have.lengthOf(3);
+        expect(result.data?.tenants?.totalCount).to.equal(10);
+        expect(result.data?.tenants?.pageInfo?.hasNextPage).to.be.true;
+        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be
           .true;
 
-        // Verify we got the right organizations
-        const ids = result.data?.organizations?.nodes.map((o: any) => o.id);
+        // Verify we got the right tenants
+        const ids = result.data?.tenants?.nodes.map((o: any) => o.id);
         expect(ids).to.deep.equal(["org-06", "org-07", "org-08"]);
       });
 
       it("should handle last page correctly", async () => {
         const query = gql`
-          query ListOrganizations($pagination: PaginationInput) {
-            organizations(pagination: $pagination) {
+          query ListTenants($pagination: PaginationInput) {
+            tenants(pagination: $pagination) {
               nodes {
                 id
               }
@@ -111,32 +111,32 @@ describe("Pagination and Filtering", () => {
           pagination: { offset: 8, limit: 5 },
         });
 
-        expect(result.data?.organizations?.nodes).to.have.lengthOf(2); // Only 2 remaining
-        expect(result.data?.organizations?.pageInfo?.hasNextPage).to.be.false;
-        expect(result.data?.organizations?.pageInfo?.hasPreviousPage).to.be
+        expect(result.data?.tenants?.nodes).to.have.lengthOf(2); // Only 2 remaining
+        expect(result.data?.tenants?.pageInfo?.hasNextPage).to.be.false;
+        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be
           .true;
       });
     });
 
     describe("users pagination", () => {
-      const getTestOrgClient = () => createOrgClient("test-org");
+      const getTestTenantClient = () => createTenantClient("test-org");
 
       beforeEach(async () => {
-        // Create test organization using ROOT client
-        const orgMutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+        // Create test tenant using ROOT client
+        const tenantMutation = gql`
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
         `;
 
-        await rootClient.mutate(orgMutation, {
-          input: { id: "test-org", name: "Test Organization" },
+        await rootClient.mutate(tenantMutation, {
+          input: { id: "test-org", name: "Test Tenant" },
         });
 
-        // Switch to organization context for RLS operations
-        const testOrgClient = getTestOrgClient();
+        // Switch to tenant context for RLS operations
+        const testTenantClient = getTestTenantClient();
 
         // Create multiple users
         const userMutation = gql`
@@ -148,11 +148,11 @@ describe("Pagination and Filtering", () => {
         `;
 
         for (let i = 1; i <= 15; i++) {
-          await testOrgClient.mutate(userMutation, {
+          await testTenantClient.mutate(userMutation, {
             input: {
               id: `user-${i.toString().padStart(2, "0")}`,
               identityProvider: i % 2 === 0 ? "google" : "auth0",
-              identityProviderUserId: `user${i}`,
+              identityProviderUserId: `user${String(i)}`,
               properties: [
                 {
                   name: "department",
@@ -166,8 +166,8 @@ describe("Pagination and Filtering", () => {
         }
       });
 
-      it("should paginate users within organization", async () => {
-        const testOrgClient = getTestOrgClient();
+      it("should paginate users within tenant", async () => {
+        const testTenantClient = getTestTenantClient();
         const query = gql`
           query ListUsers($pagination: PaginationInput) {
             users(pagination: $pagination) {
@@ -183,7 +183,7 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        const result = await testOrgClient.query(query, {
+        const result = await testTenantClient.query(query, {
           pagination: { offset: 5, limit: 5 },
         });
 
@@ -196,12 +196,12 @@ describe("Pagination and Filtering", () => {
   });
 
   describe("Filtering", () => {
-    describe("organization filtering by properties", () => {
+    describe("tenant filtering by properties", () => {
       beforeEach(async () => {
-        // Create organizations with different properties
+        // Create tenants with different properties
         const mutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
@@ -210,7 +210,7 @@ describe("Pagination and Filtering", () => {
         await rootClient.mutate(mutation, {
           input: {
             id: "org-free-small",
-            name: "Free Small Org",
+            name: "Free Small Tenant",
             properties: [
               { name: "tier", value: "free" },
               { name: "size", value: "small" },
@@ -222,7 +222,7 @@ describe("Pagination and Filtering", () => {
         await rootClient.mutate(mutation, {
           input: {
             id: "org-free-large",
-            name: "Free Large Org",
+            name: "Free Large Tenant",
             properties: [
               { name: "tier", value: "free" },
               { name: "size", value: "large" },
@@ -234,7 +234,7 @@ describe("Pagination and Filtering", () => {
         await rootClient.mutate(mutation, {
           input: {
             id: "org-premium-small",
-            name: "Premium Small Org",
+            name: "Premium Small Tenant",
             properties: [
               { name: "tier", value: "premium" },
               { name: "size", value: "small" },
@@ -244,10 +244,10 @@ describe("Pagination and Filtering", () => {
         });
       });
 
-      it("should filter organizations by single property", async () => {
+      it("should filter tenants by single property", async () => {
         const query = gql`
-          query ListOrganizations($filter: OrganizationFilter) {
-            organizations(filter: $filter) {
+          query ListTenants($filter: TenantFilter) {
+            tenants(filter: $filter) {
               nodes {
                 id
                 name
@@ -266,16 +266,16 @@ describe("Pagination and Filtering", () => {
           },
         });
 
-        expect(result.data?.organizations?.nodes).to.have.lengthOf(2);
-        const ids = result.data?.organizations?.nodes.map((o: any) => o.id);
+        expect(result.data?.tenants?.nodes).to.have.lengthOf(2);
+        const ids = result.data?.tenants?.nodes.map((o: any) => o.id);
         expect(ids).to.include.members(["org-free-small", "org-free-large"]);
         expect(ids).to.not.include("org-premium-small");
       });
 
-      it("should filter organizations by multiple properties (AND condition)", async () => {
+      it("should filter tenants by multiple properties (AND condition)", async () => {
         const query = gql`
-          query ListOrganizations($filter: OrganizationFilter) {
-            organizations(filter: $filter) {
+          query ListTenants($filter: TenantFilter) {
+            tenants(filter: $filter) {
               nodes {
                 id
                 name
@@ -293,16 +293,16 @@ describe("Pagination and Filtering", () => {
           },
         });
 
-        expect(result.data?.organizations?.nodes).to.have.lengthOf(1);
-        expect(result.data?.organizations?.nodes[0].id).to.equal(
+        expect(result.data?.tenants?.nodes).to.have.lengthOf(1);
+        expect(result.data?.tenants?.nodes[0].id).to.equal(
           "org-free-small",
         );
       });
 
       it("should filter with boolean property values", async () => {
         const query = gql`
-          query ListOrganizations($filter: OrganizationFilter) {
-            organizations(filter: $filter) {
+          query ListTenants($filter: TenantFilter) {
+            tenants(filter: $filter) {
               nodes {
                 id
               }
@@ -316,31 +316,31 @@ describe("Pagination and Filtering", () => {
           },
         });
 
-        expect(result.data?.organizations?.nodes).to.have.lengthOf(2);
-        const ids = result.data?.organizations?.nodes.map((o: any) => o.id);
+        expect(result.data?.tenants?.nodes).to.have.lengthOf(2);
+        const ids = result.data?.tenants?.nodes.map((o: any) => o.id);
         expect(ids).to.include.members(["org-free-small", "org-premium-small"]);
       });
     });
 
     describe("user filtering", () => {
-      const getTestOrgClient = () => createOrgClient("test-org");
+      const getTestTenantClient = () => createTenantClient("test-org");
 
       beforeEach(async () => {
-        // Create test organization using ROOT client
-        const orgMutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+        // Create test tenant using ROOT client
+        const tenantMutation = gql`
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
         `;
 
-        await rootClient.mutate(orgMutation, {
-          input: { id: "test-org", name: "Test Organization" },
+        await rootClient.mutate(tenantMutation, {
+          input: { id: "test-org", name: "Test Tenant" },
         });
 
-        // Switch to organization context for RLS operations
-        const testOrgClient = getTestOrgClient();
+        // Switch to tenant context for RLS operations
+        const testTenantClient = getTestTenantClient();
 
         // Create users with different properties
         const userMutation = gql`
@@ -351,7 +351,7 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        await testOrgClient.mutate(userMutation, {
+        await testTenantClient.mutate(userMutation, {
           input: {
             id: "user-eng-senior",
             identityProvider: "google",
@@ -363,7 +363,7 @@ describe("Pagination and Filtering", () => {
           },
         });
 
-        await testOrgClient.mutate(userMutation, {
+        await testTenantClient.mutate(userMutation, {
           input: {
             id: "user-eng-junior",
             identityProvider: "auth0",
@@ -375,7 +375,7 @@ describe("Pagination and Filtering", () => {
           },
         });
 
-        await testOrgClient.mutate(userMutation, {
+        await testTenantClient.mutate(userMutation, {
           input: {
             id: "user-sales-senior",
             identityProvider: "google",
@@ -389,7 +389,7 @@ describe("Pagination and Filtering", () => {
       });
 
       it("should filter users by properties", async () => {
-        const testOrgClient = getTestOrgClient();
+        const testTenantClient = getTestTenantClient();
         const query = gql`
           query ListUsers($filter: UserFilter) {
             users(filter: $filter) {
@@ -404,19 +404,19 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        const result = await testOrgClient.query(query, {
+        const result = await testTenantClient.query(query, {
           filter: {
             properties: [{ name: "department", value: "engineering" }],
           },
         });
 
         expect(result.data?.users?.nodes).to.have.lengthOf(2);
-        const ids = result.data?.users?.nodes?.map((u: any) => u.id) || [];
+        const ids = result.data?.users?.nodes?.map((u: any) => u.id) ?? [];
         expect(ids).to.include.members(["user-eng-senior", "user-eng-junior"]);
       });
 
       it("should filter users by identity provider", async () => {
-        const testOrgClient = getTestOrgClient();
+        const testTenantClient = getTestTenantClient();
         const query = gql`
           query ListUsers($filter: UserFilter) {
             users(filter: $filter) {
@@ -428,7 +428,7 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        const result = await testOrgClient.query(query, {
+        const result = await testTenantClient.query(query, {
           filter: {
             identityProvider: "google",
           },
@@ -443,7 +443,7 @@ describe("Pagination and Filtering", () => {
       });
 
       it("should filter users by multiple criteria", async () => {
-        const testOrgClient = getTestOrgClient();
+        const testTenantClient = getTestTenantClient();
         const query = gql`
           query ListUsers($filter: UserFilter) {
             users(filter: $filter) {
@@ -454,7 +454,7 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        const result = await testOrgClient.query(query, {
+        const result = await testTenantClient.query(query, {
           filter: {
             identityProvider: "google",
             properties: [{ name: "level", value: "senior" }],
@@ -471,24 +471,24 @@ describe("Pagination and Filtering", () => {
     });
 
     describe("role filtering", () => {
-      const getTestOrgClient = () => createOrgClient("test-org");
+      const getTestTenantClient = () => createTenantClient("test-org");
 
       beforeEach(async () => {
-        // Create test organization using ROOT client
-        const orgMutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+        // Create test tenant using ROOT client
+        const tenantMutation = gql`
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
         `;
 
-        await rootClient.mutate(orgMutation, {
-          input: { id: "test-org", name: "Test Organization" },
+        await rootClient.mutate(tenantMutation, {
+          input: { id: "test-org", name: "Test Tenant" },
         });
 
-        // Switch to organization context for RLS operations
-        const testOrgClient = getTestOrgClient();
+        // Switch to tenant context for RLS operations
+        const testTenantClient = getTestTenantClient();
 
         // Create roles with different properties
         const roleMutation = gql`
@@ -499,7 +499,7 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        await testOrgClient.mutate(roleMutation, {
+        await testTenantClient.mutate(roleMutation, {
           input: {
             id: "admin-full",
             name: "Full Admin",
@@ -510,7 +510,7 @@ describe("Pagination and Filtering", () => {
           },
         });
 
-        await testOrgClient.mutate(roleMutation, {
+        await testTenantClient.mutate(roleMutation, {
           input: {
             id: "admin-limited",
             name: "Limited Admin",
@@ -521,7 +521,7 @@ describe("Pagination and Filtering", () => {
           },
         });
 
-        await testOrgClient.mutate(roleMutation, {
+        await testTenantClient.mutate(roleMutation, {
           input: {
             id: "viewer",
             name: "Viewer",
@@ -534,7 +534,7 @@ describe("Pagination and Filtering", () => {
       });
 
       it("should filter roles by properties", async () => {
-        const testOrgClient = getTestOrgClient();
+        const testTenantClient = getTestTenantClient();
         const query = gql`
           query ListRoles($filter: RoleFilter) {
             roles(filter: $filter) {
@@ -546,7 +546,7 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        const result = await testOrgClient.query(query, {
+        const result = await testTenantClient.query(query, {
           filter: {
             properties: [{ name: "department", value: "all" }],
           },
@@ -559,24 +559,24 @@ describe("Pagination and Filtering", () => {
     });
 
     describe("resource filtering", () => {
-      const getTestOrgClient = () => createOrgClient("test-org");
+      const getTestTenantClient = () => createTenantClient("test-org");
 
       beforeEach(async () => {
-        // Create test organization using ROOT client
-        const orgMutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+        // Create test tenant using ROOT client
+        const tenantMutation = gql`
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
         `;
 
-        await rootClient.mutate(orgMutation, {
-          input: { id: "test-org", name: "Test Organization" },
+        await rootClient.mutate(tenantMutation, {
+          input: { id: "test-org", name: "Test Tenant" },
         });
 
-        // Switch to organization context for RLS operations
-        const testOrgClient = getTestOrgClient();
+        // Switch to tenant context for RLS operations
+        const testTenantClient = getTestTenantClient();
 
         // Create resources with different ID patterns
         const resourceMutation = gql`
@@ -587,35 +587,35 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        await testOrgClient.mutate(resourceMutation, {
+        await testTenantClient.mutate(resourceMutation, {
           input: {
             id: "/api/users",
             name: "Users API",
           },
         });
 
-        await testOrgClient.mutate(resourceMutation, {
+        await testTenantClient.mutate(resourceMutation, {
           input: {
             id: "/api/users/*",
             name: "User API Wildcard",
           },
         });
 
-        await testOrgClient.mutate(resourceMutation, {
+        await testTenantClient.mutate(resourceMutation, {
           input: {
             id: "/api/posts",
             name: "Posts API",
           },
         });
 
-        await testOrgClient.mutate(resourceMutation, {
+        await testTenantClient.mutate(resourceMutation, {
           input: {
             id: "/api/posts/*",
             name: "Post API Wildcard",
           },
         });
 
-        await testOrgClient.mutate(resourceMutation, {
+        await testTenantClient.mutate(resourceMutation, {
           input: {
             id: "/admin/settings",
             name: "Admin Settings",
@@ -624,7 +624,7 @@ describe("Pagination and Filtering", () => {
       });
 
       it("should filter resources by ID prefix", async () => {
-        const testOrgClient = getTestOrgClient();
+        const testTenantClient = getTestTenantClient();
         const query = gql`
           query ListResources($filter: ResourceFilter) {
             resources(filter: $filter) {
@@ -636,7 +636,7 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        const result = await testOrgClient.query(query, {
+        const result = await testTenantClient.query(query, {
           filter: {
             idPrefix: "/api/",
           },
@@ -654,7 +654,7 @@ describe("Pagination and Filtering", () => {
       });
 
       it("should filter resources by more specific prefix", async () => {
-        const testOrgClient = getTestOrgClient();
+        const testTenantClient = getTestTenantClient();
         const query = gql`
           query ListResources($filter: ResourceFilter) {
             resources(filter: $filter) {
@@ -665,7 +665,7 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        const result = await testOrgClient.query(query, {
+        const result = await testTenantClient.query(query, {
           filter: {
             idPrefix: "/api/users",
           },
@@ -679,10 +679,10 @@ describe("Pagination and Filtering", () => {
 
     describe("combined pagination and filtering", () => {
       beforeEach(async () => {
-        // Create organizations with properties
+        // Create tenants with properties
         const mutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
@@ -692,7 +692,7 @@ describe("Pagination and Filtering", () => {
           await rootClient.mutate(mutation, {
             input: {
               id: `org-${i.toString().padStart(2, "0")}`,
-              name: `Organization ${i}`,
+              name: `Tenant ${String(i)}`,
               properties: [
                 { name: "tier", value: i % 3 === 0 ? "premium" : "free" },
                 { name: "active", value: i % 2 === 0 },
@@ -704,11 +704,11 @@ describe("Pagination and Filtering", () => {
 
       it("should apply both filtering and pagination", async () => {
         const query = gql`
-          query ListOrganizations(
-            $filter: OrganizationFilter
+          query ListTenants(
+            $filter: TenantFilter
             $pagination: PaginationInput
           ) {
-            organizations(filter: $filter, pagination: $pagination) {
+            tenants(filter: $filter, pagination: $pagination) {
               nodes {
                 id
                 properties {
@@ -733,46 +733,46 @@ describe("Pagination and Filtering", () => {
           pagination: { offset: 2, limit: 2 },
         });
 
-        expect(result.data?.organizations?.nodes).to.have.lengthOf(2);
-        expect(result.data?.organizations?.totalCount).to.equal(6); // Total premium orgs
-        expect(result.data?.organizations?.pageInfo?.hasNextPage).to.be.true;
-        expect(result.data?.organizations?.pageInfo?.hasPreviousPage).to.be
+        expect(result.data?.tenants?.nodes).to.have.lengthOf(2);
+        expect(result.data?.tenants?.totalCount).to.equal(6); // Total premium orgs
+        expect(result.data?.tenants?.pageInfo?.hasNextPage).to.be.true;
+        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be
           .true;
 
         // Should get orgs 9 and 12 (skipping 3 and 6)
-        const ids = result.data?.organizations?.nodes.map((o: any) => o.id);
+        const ids = result.data?.tenants?.nodes.map((o: any) => o.id);
         expect(ids).to.deep.equal(["org-09", "org-12"]);
       });
     });
   });
 
   describe("Sorting", () => {
-    describe("organizations sorting", () => {
+    describe("tenants sorting", () => {
       beforeEach(async () => {
-        // Create organizations with specific IDs to test sorting
+        // Create tenants with specific IDs to test sorting
         const mutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
         `;
 
-        const orgs = ["org-charlie", "org-alpha", "org-delta", "org-bravo"];
-        for (const orgId of orgs) {
+        const tenantIds = ["org-charlie", "org-alpha", "org-delta", "org-bravo"];
+        for (const tenantId of tenantIds) {
           await rootClient.mutate(mutation, {
             input: {
-              id: orgId,
-              name: `Organization ${orgId}`,
+              id: tenantId,
+              name: `Tenant ${tenantId}`,
             },
           });
         }
       });
 
-      it("should sort organizations by id ASC (default)", async () => {
+      it("should sort tenants by id ASC (default)", async () => {
         const query = gql`
-          query ListOrganizations($pagination: PaginationInput) {
-            organizations(pagination: $pagination) {
+          query ListTenants($pagination: PaginationInput) {
+            tenants(pagination: $pagination) {
               nodes {
                 id
               }
@@ -784,7 +784,7 @@ describe("Pagination and Filtering", () => {
           pagination: { limit: 10 },
         });
 
-        const ids = result.data?.organizations?.nodes.map((o: any) => o.id);
+        const ids = result.data?.tenants?.nodes.map((o: any) => o.id);
         expect(ids).to.deep.equal([
           "org-alpha",
           "org-bravo",
@@ -793,10 +793,10 @@ describe("Pagination and Filtering", () => {
         ]);
       });
 
-      it("should sort organizations by id DESC", async () => {
+      it("should sort tenants by id DESC", async () => {
         const query = gql`
-          query ListOrganizations($pagination: PaginationInput) {
-            organizations(pagination: $pagination) {
+          query ListTenants($pagination: PaginationInput) {
+            tenants(pagination: $pagination) {
               nodes {
                 id
               }
@@ -808,7 +808,7 @@ describe("Pagination and Filtering", () => {
           pagination: { limit: 10, sortDirection: "DESC" },
         });
 
-        const ids = result.data?.organizations?.nodes.map((o: any) => o.id);
+        const ids = result.data?.tenants?.nodes.map((o: any) => o.id);
         expect(ids).to.deep.equal([
           "org-delta",
           "org-charlie",
@@ -819,24 +819,24 @@ describe("Pagination and Filtering", () => {
     });
 
     describe("users sorting", () => {
-      const getTestOrgClient = () => createOrgClient("test-org");
+      const getTestTenantClient = () => createTenantClient("test-org");
 
       beforeEach(async () => {
-        // Create test organization using ROOT client
-        const orgMutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+        // Create test tenant using ROOT client
+        const tenantMutation = gql`
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
         `;
 
-        await rootClient.mutate(orgMutation, {
-          input: { id: "test-org", name: "Test Organization" },
+        await rootClient.mutate(tenantMutation, {
+          input: { id: "test-org", name: "Test Tenant" },
         });
 
-        // Switch to organization context for RLS operations
-        const testOrgClient = getTestOrgClient();
+        // Switch to tenant context for RLS operations
+        const testTenantClient = getTestTenantClient();
 
         // Create users with specific IDs to test sorting
         const userMutation = gql`
@@ -849,7 +849,7 @@ describe("Pagination and Filtering", () => {
 
         const users = ["user-zulu", "user-alpha", "user-mike", "user-bravo"];
         for (const userId of users) {
-          await testOrgClient.mutate(userMutation, {
+          await testTenantClient.mutate(userMutation, {
             input: {
               id: userId,
               identityProvider: "auth0",
@@ -860,7 +860,7 @@ describe("Pagination and Filtering", () => {
       });
 
       it("should sort users by id ASC", async () => {
-        const testOrgClient = getTestOrgClient();
+        const testTenantClient = getTestTenantClient();
         const query = gql`
           query ListUsers($pagination: PaginationInput) {
             users(pagination: $pagination) {
@@ -871,7 +871,7 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        const result = await testOrgClient.query(query, {
+        const result = await testTenantClient.query(query, {
           pagination: { limit: 10, sortDirection: "ASC" },
         });
 
@@ -885,7 +885,7 @@ describe("Pagination and Filtering", () => {
       });
 
       it("should sort users by id DESC", async () => {
-        const testOrgClient = getTestOrgClient();
+        const testTenantClient = getTestTenantClient();
         const query = gql`
           query ListUsers($pagination: PaginationInput) {
             users(pagination: $pagination) {
@@ -896,7 +896,7 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        const result = await testOrgClient.query(query, {
+        const result = await testTenantClient.query(query, {
           pagination: { limit: 10, sortDirection: "DESC" },
         });
 
@@ -911,24 +911,24 @@ describe("Pagination and Filtering", () => {
     });
 
     describe("roles sorting", () => {
-      const getTestOrgClient = () => createOrgClient("test-org");
+      const getTestTenantClient = () => createTenantClient("test-org");
 
       beforeEach(async () => {
-        // Create test organization using ROOT client
-        const orgMutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+        // Create test tenant using ROOT client
+        const tenantMutation = gql`
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
         `;
 
-        await rootClient.mutate(orgMutation, {
-          input: { id: "test-org", name: "Test Organization" },
+        await rootClient.mutate(tenantMutation, {
+          input: { id: "test-org", name: "Test Tenant" },
         });
 
-        // Switch to organization context for RLS operations
-        const testOrgClient = getTestOrgClient();
+        // Switch to tenant context for RLS operations
+        const testTenantClient = getTestTenantClient();
 
         // Create roles with specific IDs to test sorting
         const roleMutation = gql`
@@ -946,7 +946,7 @@ describe("Pagination and Filtering", () => {
           "role-contributor",
         ];
         for (const roleId of roles) {
-          await testOrgClient.mutate(roleMutation, {
+          await testTenantClient.mutate(roleMutation, {
             input: {
               id: roleId,
               name: roleId,
@@ -956,7 +956,7 @@ describe("Pagination and Filtering", () => {
       });
 
       it("should sort roles by id with pagination", async () => {
-        const testOrgClient = getTestOrgClient();
+        const testTenantClient = getTestTenantClient();
         const query = gql`
           query ListRoles($pagination: PaginationInput) {
             roles(pagination: $pagination) {
@@ -968,7 +968,7 @@ describe("Pagination and Filtering", () => {
         `;
 
         // Test DESC with limit
-        const result = await testOrgClient.query(query, {
+        const result = await testTenantClient.query(query, {
           pagination: { limit: 2, sortDirection: "DESC" },
         });
 
@@ -978,24 +978,24 @@ describe("Pagination and Filtering", () => {
     });
 
     describe("resources sorting", () => {
-      const getTestOrgClient = () => createOrgClient("test-org");
+      const getTestTenantClient = () => createTenantClient("test-org");
 
       beforeEach(async () => {
-        // Create test organization using ROOT client
-        const orgMutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+        // Create test tenant using ROOT client
+        const tenantMutation = gql`
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
         `;
 
-        await rootClient.mutate(orgMutation, {
-          input: { id: "test-org", name: "Test Organization" },
+        await rootClient.mutate(tenantMutation, {
+          input: { id: "test-org", name: "Test Tenant" },
         });
 
-        // Switch to organization context for RLS operations
-        const testOrgClient = getTestOrgClient();
+        // Switch to tenant context for RLS operations
+        const testTenantClient = getTestTenantClient();
 
         // Create resources with specific IDs to test sorting
         const resourceMutation = gql`
@@ -1013,7 +1013,7 @@ describe("Pagination and Filtering", () => {
           "/api/bear",
         ];
         for (const resourceId of resources) {
-          await testOrgClient.mutate(resourceMutation, {
+          await testTenantClient.mutate(resourceMutation, {
             input: {
               id: resourceId,
               name: resourceId,
@@ -1023,7 +1023,7 @@ describe("Pagination and Filtering", () => {
       });
 
       it("should sort resources by id ASC and DESC", async () => {
-        const testOrgClient = getTestOrgClient();
+        const testTenantClient = getTestTenantClient();
         const query = gql`
           query ListResources($pagination: PaginationInput) {
             resources(pagination: $pagination) {
@@ -1035,7 +1035,7 @@ describe("Pagination and Filtering", () => {
         `;
 
         // Test ASC
-        const ascResult = await testOrgClient.query(query, {
+        const ascResult = await testTenantClient.query(query, {
           pagination: { sortDirection: "ASC" },
         });
 
@@ -1048,7 +1048,7 @@ describe("Pagination and Filtering", () => {
         ]);
 
         // Test DESC
-        const descResult = await testOrgClient.query(query, {
+        const descResult = await testTenantClient.query(query, {
           pagination: { sortDirection: "DESC" },
         });
 
@@ -1064,10 +1064,10 @@ describe("Pagination and Filtering", () => {
 
     describe("combined sorting, filtering, and pagination", () => {
       beforeEach(async () => {
-        // Create organizations with properties
+        // Create tenants with properties
         const mutation = gql`
-          mutation CreateOrganization($input: CreateOrganizationInput!) {
-            createOrganization(input: $input) {
+          mutation CreateTenant($input: CreateTenantInput!) {
+            createTenant(input: $input) {
               id
             }
           }
@@ -1084,12 +1084,12 @@ describe("Pagination and Filtering", () => {
           "free-bravo",
         ];
 
-        for (const orgId of orgs) {
-          const tier = orgId.startsWith("premium") ? "premium" : "free";
+        for (const tenantId of orgs) {
+          const tier = tenantId.startsWith("premium") ? "premium" : "free";
           await rootClient.mutate(mutation, {
             input: {
-              id: orgId,
-              name: `Organization ${orgId}`,
+              id: tenantId,
+              name: `Tenant ${tenantId}`,
               properties: [{ name: "tier", value: tier }],
             },
           });
@@ -1098,11 +1098,11 @@ describe("Pagination and Filtering", () => {
 
       it("should apply filtering, sorting DESC, and pagination together", async () => {
         const query = gql`
-          query ListOrganizations(
-            $filter: OrganizationFilter
+          query ListTenants(
+            $filter: TenantFilter
             $pagination: PaginationInput
           ) {
-            organizations(filter: $filter, pagination: $pagination) {
+            tenants(filter: $filter, pagination: $pagination) {
               nodes {
                 id
               }
@@ -1123,11 +1123,11 @@ describe("Pagination and Filtering", () => {
           },
         });
 
-        expect(result.data?.organizations?.nodes).to.have.lengthOf(2);
-        expect(result.data?.organizations?.totalCount).to.equal(4); // Total premium orgs
+        expect(result.data?.tenants?.nodes).to.have.lengthOf(2);
+        expect(result.data?.tenants?.totalCount).to.equal(4); // Total premium orgs
 
         // Should get premium-mike and premium-bravo (skipping premium-zulu due to offset)
-        const ids = result.data?.organizations?.nodes.map((o: any) => o.id);
+        const ids = result.data?.tenants?.nodes.map((o: any) => o.id);
         expect(ids).to.deep.equal(["premium-mike", "premium-bravo"]);
       });
     });

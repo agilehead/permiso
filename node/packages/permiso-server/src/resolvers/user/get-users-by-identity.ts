@@ -1,5 +1,5 @@
 import { getUsersByIdentity } from "../../domain/user/get-users-by-identity.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 // Re-export domain function
 export { getUsersByIdentity };

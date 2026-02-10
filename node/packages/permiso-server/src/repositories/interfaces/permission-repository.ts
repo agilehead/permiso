@@ -10,7 +10,7 @@ import type { Result } from "./types.js";
 // User permission entity
 export type UserPermission = {
   userId: string;
-  orgId: string;
+  tenantId: string;
   resourceId: string;
   action: string;
   createdAt: number;
@@ -19,7 +19,7 @@ export type UserPermission = {
 // Role permission entity
 export type RolePermission = {
   roleId: string;
-  orgId: string;
+  tenantId: string;
   resourceId: string;
   action: string;
   createdAt: number;
@@ -43,41 +43,41 @@ export type GrantPermissionInput = {
 export type IPermissionRepository = {
   // User permissions
   grantUserPermission(
-    orgId: string,
+    tenantId: string,
     userId: string,
     input: GrantPermissionInput,
   ): Promise<Result<UserPermission>>;
   revokeUserPermission(
-    orgId: string,
+    tenantId: string,
     userId: string,
     resourceId: string,
     action: string,
   ): Promise<Result<boolean>>;
   getUserPermissions(
-    orgId: string,
+    tenantId: string,
     userId: string,
   ): Promise<Result<UserPermission[]>>;
 
   // Role permissions
   grantRolePermission(
-    orgId: string,
+    tenantId: string,
     roleId: string,
     input: GrantPermissionInput,
   ): Promise<Result<RolePermission>>;
   revokeRolePermission(
-    orgId: string,
+    tenantId: string,
     roleId: string,
     resourceId: string,
     action: string,
   ): Promise<Result<boolean>>;
   getRolePermissions(
-    orgId: string,
+    tenantId: string,
     roleId: string,
   ): Promise<Result<RolePermission[]>>;
 
   // Permission queries
   getPermissionsByResource(
-    orgId: string,
+    tenantId: string,
     resourceId: string,
   ): Promise<
     Result<{
@@ -88,7 +88,7 @@ export type IPermissionRepository = {
 
   // Effective permissions (includes wildcard matching)
   getEffectivePermissions(
-    orgId: string,
+    tenantId: string,
     userId: string,
     resourceId?: string,
     action?: string,
@@ -96,7 +96,7 @@ export type IPermissionRepository = {
 
   // Permission check (includes wildcard matching)
   hasPermission(
-    orgId: string,
+    tenantId: string,
     userId: string,
     resourceId: string,
     action: string,
@@ -104,7 +104,7 @@ export type IPermissionRepository = {
 
   // Prefix-based queries (for wildcard resources like /india/*)
   getEffectivePermissionsByPrefix(
-    orgId: string,
+    tenantId: string,
     userId: string,
     resourceIdPrefix: string,
   ): Promise<Result<EffectivePermission[]>>;

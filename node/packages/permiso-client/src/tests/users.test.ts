@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { createOrganization } from "../api/organizations.js";
+import { createTenant } from "../api/tenants.js";
 import {
   createUser,
   getUser,
@@ -20,20 +20,20 @@ import "./setup.js";
 
 describe("Users API", () => {
   let config: ReturnType<typeof getTestConfig>;
-  let testOrgId: string;
+  let testTenantId: string;
 
   beforeEach(async () => {
-    // Create a test organization for each test
-    testOrgId = generateTestId("org");
-    const rootConfig = getTestConfig(); // ROOT context to create org
-    const orgResult = await createOrganization(rootConfig, {
-      id: testOrgId,
-      name: "Test Organization",
+    // Create a test tenant for each test
+    testTenantId = generateTestId("tenant");
+    const rootConfig = getTestConfig(); // ROOT context to create tenant
+    const tenantResult = await createTenant(rootConfig, {
+      id: testTenantId,
+      name: "Test Tenant",
     });
-    expect(orgResult.success).to.be.true;
+    expect(tenantResult.success).to.be.true;
 
-    // Update config with the test org ID for subsequent operations
-    config = { ...rootConfig, orgId: testOrgId };
+    // Update config with the test tenant ID for subsequent operations
+    config = { ...rootConfig, tenantId: testTenantId };
   });
 
   describe("createUser", () => {
@@ -52,7 +52,7 @@ describe("Users API", () => {
       expect(result.success).to.be.true;
       if (result.success) {
         expect(result.data.id).to.equal(userId);
-        expect(result.data.orgId).to.equal(testOrgId);
+        expect(result.data.tenantId).to.equal(testTenantId);
         expect(result.data.identityProvider).to.equal("google");
         expect(result.data.identityProviderUserId).to.equal("user@example.com");
         expect(result.data.properties).to.have.lengthOf(2);
@@ -112,7 +112,7 @@ describe("Users API", () => {
       expect(getResult.success).to.be.true;
       if (getResult.success) {
         expect(getResult.data?.id).to.equal(userId);
-        expect(getResult.data?.orgId).to.equal(testOrgId);
+        expect(getResult.data?.tenantId).to.equal(testTenantId);
       }
     });
 
@@ -130,12 +130,12 @@ describe("Users API", () => {
       // Create multiple users
       const userIds = [];
       for (let i = 0; i < 5; i++) {
-        const userId = generateTestId(`user-${i}`);
+        const userId = generateTestId(`user-${String(i)}`);
         userIds.push(userId);
         const result = await createUser(config, {
           id: userId,
           identityProvider: "google",
-          identityProviderUserId: `user${i}@example.com`,
+          identityProviderUserId: `user${String(i)}@example.com`,
         });
         expect(result.success).to.be.true;
       }
@@ -184,12 +184,12 @@ describe("Users API", () => {
     it("should retrieve multiple users by IDs", async () => {
       const userIds = [];
       for (let i = 0; i < 3; i++) {
-        const userId = generateTestId(`user-${i}`);
+        const userId = generateTestId(`user-${String(i)}`);
         userIds.push(userId);
         const result = await createUser(config, {
           id: userId,
           identityProvider: "google",
-          identityProviderUserId: `user${i}@example.com`,
+          identityProviderUserId: `user${String(i)}@example.com`,
         });
         expect(result.success).to.be.true;
       }
@@ -209,32 +209,32 @@ describe("Users API", () => {
       const identityProvider = "okta";
       const identityProviderUserId = "okta-user-123";
 
-      // Create user in first org
+      // Create user in first tenant
       await createUser(config, {
         id: generateTestId("user1"),
         identityProvider,
         identityProviderUserId,
       });
 
-      // Create another org and user with same identity
-      const org2Id = generateTestId("org2");
-      const rootConfig = getTestConfig(); // ROOT context to create org
-      await createOrganization(rootConfig, {
-        id: org2Id,
-        name: "Second Org",
+      // Create another tenant and user with same identity
+      const tenant2Id = generateTestId("tenant2");
+      const rootConfig = getTestConfig(); // ROOT context to create tenant
+      await createTenant(rootConfig, {
+        id: tenant2Id,
+        name: "Second Tenant",
       });
 
-      // Create config for org2 and create user there
-      const org2Config = { ...rootConfig, orgId: org2Id };
-      await createUser(org2Config, {
+      // Create config for tenant2 and create user there
+      const tenant2Config = { ...rootConfig, tenantId: tenant2Id };
+      await createUser(tenant2Config, {
         id: generateTestId("user2"),
         identityProvider,
         identityProviderUserId,
       });
 
-      // Find users by identity (this is a ROOT operation that searches across all orgs)
+      // Find users by identity (this is a ROOT operation that searches across all tenants)
       const result = await getUsersByIdentity(
-        rootConfig, // Use ROOT config for cross-org search
+        rootConfig, // Use ROOT config for cross-tenant search
         identityProvider,
         identityProviderUserId,
       );
@@ -242,10 +242,10 @@ describe("Users API", () => {
       if (result.success) {
         expect(result.data).to.have.lengthOf(2);
 
-        // Verify users are from different organizations
-        const orgIds = result.data.map((user) => user.orgId);
-        expect(orgIds).to.include(testOrgId);
-        expect(orgIds).to.include(org2Id);
+        // Verify users are from different tenants
+        const tenantIds = result.data.map((user) => user.tenantId);
+        expect(tenantIds).to.include(testTenantId);
+        expect(tenantIds).to.include(tenant2Id);
 
         result.data.forEach((user) => {
           expect(user.identityProvider).to.equal(identityProvider);

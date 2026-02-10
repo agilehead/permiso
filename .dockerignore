@@ -2,67 +2,46 @@
 .git
 .gitignore
 
-# Node modules
+# Node modules (rebuilt in container)
 node_modules
 **/node_modules
-node/packages/*/node_modules
 
-# Build artifacts
-dist
+# Build artifacts (rebuilt in container)
 **/dist
-build
-**/build
-*.tsbuildinfo
 
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+# Test directories
+**/.tests
+**/.temp
+**/.analysis
 
-# IDE
+# IDE and editor files
 .vscode
 .idea
 *.swp
 *.swo
-*~
-.DS_Store
 
-# Environment files
+# Environment files (sensitive)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Test coverage
-coverage
-.nyc_output
+.env.*
+!.env.example
+!.env.docker.example
 
 # Documentation
-docs
 *.md
 !README.md
+docs/
 
-# CI/CD
-.github
-.gitlab-ci.yml
-.travis.yml
+# Development config
+.eslintrc*
+.prettierrc*
+tsconfig*.json
+!tsconfig.base.json
 
-# Docker files (don't include in context)
-Dockerfile*
-docker-compose*.yml
-.dockerignore
+# Test files
+**/*.test.ts
+**/*.spec.ts
+**/tests/
 
-# Scripts not needed in container
-docker-build.sh
-docker-push.sh
-
-# Integration tests (not needed in production image)
-node/packages/permiso-integration-tests
-
-# Development environment data
-devenv
-tmp
+# Logs
+*.log
+logs/

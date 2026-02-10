@@ -1,5 +1,5 @@
 import { hasPermission } from "../../domain/permission/has-permission.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const hasPermissionResolver = {
   Query: {

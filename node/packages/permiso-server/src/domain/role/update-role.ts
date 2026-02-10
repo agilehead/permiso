@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { Role } from "../../repositories/interfaces/index.js";
 import type { UpdateRoleInput } from "../../generated/graphql.js";
@@ -12,7 +12,7 @@ export async function updateRole(
   input: UpdateRoleInput,
 ): Promise<Result<Role>> {
   try {
-    const result = await ctx.repos.role.update(ctx.orgId, roleId, {
+    const result = await ctx.repos.role.update(ctx.tenantId, roleId, {
       name: input.name ?? undefined,
       description: input.description ?? undefined,
     });
@@ -25,7 +25,7 @@ export async function updateRole(
       success: true,
       data: {
         id: result.data.id,
-        orgId: result.data.orgId,
+        tenantId: result.data.tenantId,
         name: result.data.name,
         description: result.data.description,
         createdAt: result.data.createdAt,

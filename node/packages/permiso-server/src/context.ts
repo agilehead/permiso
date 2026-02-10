@@ -1,6 +1,6 @@
-import type { Database } from "@codespin/permiso-db";
+import type { Repositories } from "./repositories/interfaces/index.js";
 
 export type GraphQLContext = {
-  db: Database;
-  orgId: string;
+  repos: Repositories;
+  tenantId: string;
 };

@@ -1,15 +1,16 @@
 import {
   ApolloClient,
   InMemoryCache,
-  DocumentNode,
-  NormalizedCacheObject,
   createHttpLink,
 } from "@apollo/client/core/index.js";
 import type {
   ApolloQueryResult,
   FetchResult,
-} from "@apollo/client/core/index.js";
-import { Logger, testLogger } from "@codespin/permiso-test-utils";
+
+  DocumentNode,
+  NormalizedCacheObject} from "@apollo/client/core/index.js";
+import type { Logger} from "@codespin/permiso-test-utils";
+import { testLogger } from "@codespin/permiso-test-utils";
 
 export class GraphQLClient {
   private client: ApolloClient<NormalizedCacheObject>;
@@ -39,7 +40,7 @@ export class GraphQLClient {
         },
       },
     });
-    this.logger = options?.logger || testLogger;
+    this.logger = options?.logger ?? testLogger;
   }
 
   async query<T = any>(
@@ -52,7 +53,7 @@ export class GraphQLClient {
         variables,
       });
     } catch (error: any) {
-      if (error.networkError?.result?.errors) {
+      if (error.networkError?.result?.errors != null) {
         this.logger.error(
           "GraphQL Errors:",
           JSON.stringify(error.networkError.result.errors, null, 2),
@@ -72,7 +73,7 @@ export class GraphQLClient {
         variables,
       });
     } catch (error: any) {
-      if (error.networkError?.result?.errors) {
+      if (error.networkError?.result?.errors != null) {
         this.logger.error(
           "GraphQL Errors:",
           JSON.stringify(error.networkError.result.errors, null, 2),
@@ -84,7 +85,7 @@ export class GraphQLClient {
 
   async stop(): Promise<void> {
     // Stop the Apollo Client to clean up any active connections
-    await this.client.stop();
+    this.client.stop();
     await this.client.clearStore();
   }
 }

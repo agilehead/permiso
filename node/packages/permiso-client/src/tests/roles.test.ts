@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { createOrganization } from "../api/organizations.js";
+import { createTenant } from "../api/tenants.js";
 import {
   createRole,
   getRole,
@@ -16,20 +16,20 @@ import "./setup.js";
 
 describe("Roles API", () => {
   let config: ReturnType<typeof getTestConfig>;
-  let testOrgId: string;
+  let testTenantId: string;
 
   beforeEach(async () => {
-    // Create a test organization for each test
-    testOrgId = generateTestId("org");
-    const rootConfig = getTestConfig(); // ROOT context to create org
-    const orgResult = await createOrganization(rootConfig, {
-      id: testOrgId,
-      name: "Test Organization",
+    // Create a test tenant for each test
+    testTenantId = generateTestId("tenant");
+    const rootConfig = getTestConfig(); // ROOT context to create tenant
+    const tenantResult = await createTenant(rootConfig, {
+      id: testTenantId,
+      name: "Test Tenant",
     });
-    expect(orgResult.success).to.be.true;
+    expect(tenantResult.success).to.be.true;
 
-    // Update config with the test org ID for subsequent operations
-    config = { ...rootConfig, orgId: testOrgId };
+    // Update config with the test tenant ID for subsequent operations
+    config = { ...rootConfig, tenantId: testTenantId };
   });
 
   describe("createRole", () => {
@@ -51,7 +51,7 @@ describe("Roles API", () => {
       expect(result.success).to.be.true;
       if (result.success) {
         expect(result.data.id).to.equal(roleId);
-        expect(result.data.orgId).to.equal(testOrgId);
+        expect(result.data.tenantId).to.equal(testTenantId);
         expect(result.data.name).to.equal("Administrator");
         expect(result.data.description).to.equal("Full system access");
         expect(result.data.properties).to.have.lengthOf(2);
@@ -116,11 +116,11 @@ describe("Roles API", () => {
       // Create multiple roles
       const roleIds = [];
       for (let i = 0; i < 5; i++) {
-        const roleId = generateTestId(`role-${i}`);
+        const roleId = generateTestId(`role-${String(i)}`);
         roleIds.push(roleId);
         const result = await createRole(config, {
           id: roleId,
-          name: `Role ${i}`,
+          name: `Role ${String(i)}`,
         });
         expect(result.success).to.be.true;
       }
@@ -198,11 +198,11 @@ describe("Roles API", () => {
     it("should retrieve multiple roles by IDs", async () => {
       const roleIds = [];
       for (let i = 0; i < 3; i++) {
-        const roleId = generateTestId(`role-${i}`);
+        const roleId = generateTestId(`role-${String(i)}`);
         roleIds.push(roleId);
         const result = await createRole(config, {
           id: roleId,
-          name: `Role ${i}`,
+          name: `Role ${String(i)}`,
         });
         expect(result.success).to.be.true;
       }

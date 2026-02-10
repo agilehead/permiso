@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { EffectivePermission } from "../../types.js";
 
@@ -13,7 +13,7 @@ export async function getEffectivePermissionsByPrefix(
 ): Promise<Result<EffectivePermission[]>> {
   try {
     const result = await ctx.repos.permission.getEffectivePermissionsByPrefix(
-      ctx.orgId,
+      ctx.tenantId,
       userId,
       resourceIdPrefix,
     );
@@ -24,7 +24,7 @@ export async function getEffectivePermissionsByPrefix(
 
     // Apply action filter if provided
     let permissions = result.data;
-    if (action) {
+    if (action !== undefined && action !== "") {
       permissions = permissions.filter((p) => p.action === action);
     }
 

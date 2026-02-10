@@ -30,7 +30,7 @@ const logger = createLogger("permiso-server:repos:sqlite:role");
 
 function mapRoleFromDb(row: {
   id: string;
-  org_id: string;
+  tenant_id: string;
   name: string;
   description: string | null;
   created_at: number;
@@ -38,7 +38,7 @@ function mapRoleFromDb(row: {
 }): Role {
   return {
     id: row.id,
-    orgId: row.org_id,
+    tenantId: row.tenant_id,
     name: row.name,
     description: row.description,
     createdAt: row.created_at,
@@ -62,11 +62,12 @@ function mapPropertyFromDb(row: {
 
 export function createRoleRepository(
   db: Database,
-  _orgId: string,
+  _tenantId: string,
 ): IRoleRepository {
   return {
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async create(
-      inputOrgId: string,
+      inputTenantId: string,
       input: CreateRoleInput,
     ): Promise<Result<Role>> {
       try {
@@ -79,7 +80,7 @@ export function createRoleRepository(
             q,
             p: {
               id: string;
-              org_id: string;
+              tenant_id: string;
               name: string;
               description: string | null;
               created_at: number;
@@ -88,7 +89,7 @@ export function createRoleRepository(
           ) =>
             q.insertInto("role").values({
               id: p.id,
-              org_id: p.org_id,
+              tenant_id: p.tenant_id,
               name: p.name,
               description: p.description,
               created_at: p.created_at,
@@ -96,7 +97,7 @@ export function createRoleRepository(
             }),
           {
             id: input.id,
-            org_id: inputOrgId,
+            tenant_id: inputTenantId,
             name: input.name,
             description: input.description ?? null,
             created_at: now,
@@ -105,7 +106,7 @@ export function createRoleRepository(
         );
 
         // Handle properties if provided
-        if (input.properties && input.properties.length > 0) {
+        if (input.properties !== undefined && input.properties.length > 0) {
           for (const prop of input.properties) {
             executeInsert(
               db,
@@ -114,7 +115,7 @@ export function createRoleRepository(
                 q,
                 p: {
                   parent_id: string;
-                  org_id: string;
+                  tenant_id: string;
                   name: string;
                   value: string;
                   hidden: number;
@@ -123,7 +124,7 @@ export function createRoleRepository(
               ) =>
                 q.insertInto("role_property").values({
                   parent_id: p.parent_id,
-                  org_id: p.org_id,
+                  tenant_id: p.tenant_id,
                   name: p.name,
                   value: p.value,
                   hidden: p.hidden,
@@ -131,13 +132,13 @@ export function createRoleRepository(
                 }),
               {
                 parent_id: input.id,
-                org_id: inputOrgId,
+                tenant_id: inputTenantId,
                 name: prop.name,
                 value:
                   prop.value === undefined
                     ? "null"
                     : JSON.stringify(prop.value),
-                hidden: prop.hidden ? 1 : 0,
+                hidden: prop.hidden === true ? 1 : 0,
                 created_at: now,
               },
             );
@@ -148,12 +149,12 @@ export function createRoleRepository(
         const rows = executeSelect(
           db,
           schema,
-          (q, p: { id: string; org_id: string }) =>
-            q.from("role").where((r) => r.id === p.id && r.org_id === p.org_id),
-          { id: input.id, org_id: inputOrgId },
+          (q, p: { id: string; tenant_id: string }) =>
+            q.from("role").where((r) => r.id === p.id && r.tenant_id === p.tenant_id),
+          { id: input.id, tenant_id: inputTenantId },
         );
 
-        if (!rows[0]) {
+        if (rows.length === 0) {
           return {
             success: false,
             error: new Error("Role not found after creation"),
@@ -167,64 +168,70 @@ export function createRoleRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async getById(
-      inputOrgId: string,
+      inputTenantId: string,
       roleId: string,
     ): Promise<Result<Role | null>> {
       try {
         const rows = executeSelect(
           db,
           schema,
-          (q, p: { roleId: string; orgId: string }) =>
+          (q, p: { roleId: string; tenantId: string }) =>
             q
               .from("role")
-              .where((r) => r.id === p.roleId && r.org_id === p.orgId),
-          { roleId, orgId: inputOrgId },
+              .where((r) => r.id === p.roleId && r.tenant_id === p.tenantId),
+          { roleId, tenantId: inputTenantId },
         );
-        return { success: true, data: rows[0] ? mapRoleFromDb(rows[0]) : null };
+        return { success: true, data: rows.length > 0 ? mapRoleFromDb(rows[0]) : null };
       } catch (error) {
         logger.error("Failed to get role", { error, roleId });
         return { success: false, error: error as Error };
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async list(
-      inputOrgId: string,
+      inputTenantId: string,
       filter?: RoleFilter,
       pagination?: PaginationInput,
     ): Promise<Result<Connection<Role>>> {
       try {
         // Count and list with raw SQL for LIKE support
+        const filterName = filter?.name;
+        const hasName = filterName !== undefined && filterName !== "";
         const countStmt = db.prepare(
-          filter?.name
-            ? `SELECT COUNT(*) as count FROM role WHERE org_id = @orgId AND name LIKE @name`
-            : `SELECT COUNT(*) as count FROM role WHERE org_id = @orgId`,
+          hasName
+            ? `SELECT COUNT(*) as count FROM role WHERE tenant_id = @tenantId AND name LIKE @name`
+            : `SELECT COUNT(*) as count FROM role WHERE tenant_id = @tenantId`,
         );
         const countResult = countStmt.get({
-          orgId: inputOrgId,
-          ...(filter?.name ? { name: `%${filter.name}%` } : {}),
+          tenantId: inputTenantId,
+          ...(hasName ? { name: `%${filterName}%` } : {}),
         }) as { count: number };
         const totalCount = countResult.count;
 
         const sortDir = pagination?.sortDirection === "DESC" ? "DESC" : "ASC";
+        const hasFirst = pagination?.first !== undefined && pagination.first !== 0;
+        const hasOffset = pagination?.offset !== undefined && pagination.offset !== 0;
         const stmt = db.prepare(
-          `SELECT * FROM role WHERE org_id = @orgId${
-            filter?.name ? " AND name LIKE @name" : ""
-          } ORDER BY id ${sortDir}${pagination?.first ? " LIMIT @limit" : ""}${pagination?.offset ? " OFFSET @offset" : ""}`,
+          `SELECT * FROM role WHERE tenant_id = @tenantId${
+            hasName ? " AND name LIKE @name" : ""
+          } ORDER BY id ${sortDir}${hasFirst ? " LIMIT @limit" : ""}${hasOffset ? " OFFSET @offset" : ""}`,
         );
         const rows = stmt.all({
-          orgId: inputOrgId,
-          ...(filter?.name ? { name: `%${filter.name}%` } : {}),
-          ...(pagination?.first ? { limit: pagination.first } : {}),
-          ...(pagination?.offset ? { offset: pagination.offset } : {}),
-        }) as Array<{
+          tenantId: inputTenantId,
+          ...(hasName ? { name: `%${filterName}%` } : {}),
+          ...(hasFirst ? { limit: pagination.first } : {}),
+          ...(hasOffset ? { offset: pagination.offset } : {}),
+        }) as {
           id: string;
-          org_id: string;
+          tenant_id: string;
           name: string;
           description: string | null;
           created_at: number;
           updated_at: number;
-        }>;
+        }[];
 
         return {
           success: true,
@@ -232,7 +239,7 @@ export function createRoleRepository(
             nodes: rows.map(mapRoleFromDb),
             totalCount,
             pageInfo: {
-              hasNextPage: pagination?.first
+              hasNextPage: hasFirst
                 ? rows.length === pagination.first
                 : false,
               hasPreviousPage: false,
@@ -247,15 +254,16 @@ export function createRoleRepository(
       }
     },
 
-    async listByOrg(
-      inputOrgId: string,
+    async listByTenant(
+      inputTenantId: string,
       pagination?: PaginationInput,
     ): Promise<Result<Connection<Role>>> {
-      return this.list(inputOrgId, undefined, pagination);
+      return this.list(inputTenantId, undefined, pagination);
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async update(
-      inputOrgId: string,
+      inputTenantId: string,
       roleId: string,
       input: UpdateRoleInput,
     ): Promise<Result<Role>> {
@@ -266,7 +274,7 @@ export function createRoleRepository(
         const updates: string[] = ["updated_at = @updated_at"];
         const params: Record<string, unknown> = {
           roleId,
-          orgId: inputOrgId,
+          tenantId: inputTenantId,
           updated_at: now,
         };
 
@@ -280,7 +288,7 @@ export function createRoleRepository(
         }
 
         const stmt = db.prepare(
-          `UPDATE role SET ${updates.join(", ")} WHERE id = @roleId AND org_id = @orgId`,
+          `UPDATE role SET ${updates.join(", ")} WHERE id = @roleId AND tenant_id = @tenantId`,
         );
         stmt.run(params);
 
@@ -288,14 +296,14 @@ export function createRoleRepository(
         const rows = executeSelect(
           db,
           schema,
-          (q, p: { roleId: string; orgId: string }) =>
+          (q, p: { roleId: string; tenantId: string }) =>
             q
               .from("role")
-              .where((r) => r.id === p.roleId && r.org_id === p.orgId),
-          { roleId, orgId: inputOrgId },
+              .where((r) => r.id === p.roleId && r.tenant_id === p.tenantId),
+          { roleId, tenantId: inputTenantId },
         );
 
-        if (!rows[0]) {
+        if (rows.length === 0) {
           return { success: false, error: new Error("Role not found") };
         }
 
@@ -306,50 +314,51 @@ export function createRoleRepository(
       }
     },
 
-    async delete(inputOrgId: string, roleId: string): Promise<Result<boolean>> {
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
+    async delete(inputTenantId: string, roleId: string): Promise<Result<boolean>> {
       try {
         const deleteAll = db.transaction(() => {
           executeDelete(
             db,
             schema,
-            (q, p: { roleId: string; orgId: string }) =>
+            (q, p: { roleId: string; tenantId: string }) =>
               q
                 .deleteFrom("role_property")
                 .where(
-                  (rp) => rp.parent_id === p.roleId && rp.org_id === p.orgId,
+                  (rp) => rp.parent_id === p.roleId && rp.tenant_id === p.tenantId,
                 ),
-            { roleId, orgId: inputOrgId },
+            { roleId, tenantId: inputTenantId },
           );
           executeDelete(
             db,
             schema,
-            (q, p: { roleId: string; orgId: string }) =>
+            (q, p: { roleId: string; tenantId: string }) =>
               q
                 .deleteFrom("role_permission")
                 .where(
-                  (rp) => rp.role_id === p.roleId && rp.org_id === p.orgId,
+                  (rp) => rp.role_id === p.roleId && rp.tenant_id === p.tenantId,
                 ),
-            { roleId, orgId: inputOrgId },
+            { roleId, tenantId: inputTenantId },
           );
           executeDelete(
             db,
             schema,
-            (q, p: { roleId: string; orgId: string }) =>
+            (q, p: { roleId: string; tenantId: string }) =>
               q
                 .deleteFrom("user_role")
                 .where(
-                  (ur) => ur.role_id === p.roleId && ur.org_id === p.orgId,
+                  (ur) => ur.role_id === p.roleId && ur.tenant_id === p.tenantId,
                 ),
-            { roleId, orgId: inputOrgId },
+            { roleId, tenantId: inputTenantId },
           );
           executeDelete(
             db,
             schema,
-            (q, p: { roleId: string; orgId: string }) =>
+            (q, p: { roleId: string; tenantId: string }) =>
               q
                 .deleteFrom("role")
-                .where((r) => r.id === p.roleId && r.org_id === p.orgId),
-            { roleId, orgId: inputOrgId },
+                .where((r) => r.id === p.roleId && r.tenant_id === p.tenantId),
+            { roleId, tenantId: inputTenantId },
           );
         });
 
@@ -361,19 +370,20 @@ export function createRoleRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async getUserIds(
-      inputOrgId: string,
+      inputTenantId: string,
       roleId: string,
     ): Promise<Result<string[]>> {
       try {
         const rows = executeSelect(
           db,
           schema,
-          (q, p: { roleId: string; orgId: string }) =>
+          (q, p: { roleId: string; tenantId: string }) =>
             q
               .from("user_role")
-              .where((ur) => ur.role_id === p.roleId && ur.org_id === p.orgId),
-          { roleId, orgId: inputOrgId },
+              .where((ur) => ur.role_id === p.roleId && ur.tenant_id === p.tenantId),
+          { roleId, tenantId: inputTenantId },
         );
         return { success: true, data: rows.map((r) => r.user_id) };
       } catch (error) {
@@ -382,21 +392,22 @@ export function createRoleRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async getProperties(
-      inputOrgId: string,
+      inputTenantId: string,
       roleId: string,
     ): Promise<Result<Property[]>> {
       try {
         const rows = executeSelect(
           db,
           schema,
-          (q, p: { roleId: string; orgId: string }) =>
+          (q, p: { roleId: string; tenantId: string }) =>
             q
               .from("role_property")
               .where(
-                (rp) => rp.parent_id === p.roleId && rp.org_id === p.orgId,
+                (rp) => rp.parent_id === p.roleId && rp.tenant_id === p.tenantId,
               ),
-          { roleId, orgId: inputOrgId },
+          { roleId, tenantId: inputTenantId },
         );
         return { success: true, data: rows.map(mapPropertyFromDb) };
       } catch (error) {
@@ -405,8 +416,9 @@ export function createRoleRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async getProperty(
-      inputOrgId: string,
+      inputTenantId: string,
       roleId: string,
       name: string,
     ): Promise<Result<Property | null>> {
@@ -414,20 +426,20 @@ export function createRoleRepository(
         const rows = executeSelect(
           db,
           schema,
-          (q, p: { roleId: string; orgId: string; name: string }) =>
+          (q, p: { roleId: string; tenantId: string; name: string }) =>
             q
               .from("role_property")
               .where(
                 (rp) =>
                   rp.parent_id === p.roleId &&
-                  rp.org_id === p.orgId &&
+                  rp.tenant_id === p.tenantId &&
                   rp.name === p.name,
               ),
-          { roleId, orgId: inputOrgId, name },
+          { roleId, tenantId: inputTenantId, name },
         );
         return {
           success: true,
-          data: rows[0] ? mapPropertyFromDb(rows[0]) : null,
+          data: rows.length > 0 ? mapPropertyFromDb(rows[0]) : null,
         };
       } catch (error) {
         logger.error("Failed to get role property", { error, roleId, name });
@@ -435,8 +447,9 @@ export function createRoleRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async setProperty(
-      inputOrgId: string,
+      inputTenantId: string,
       roleId: string,
       property: PropertyInput,
     ): Promise<Result<Property>> {
@@ -446,7 +459,7 @@ export function createRoleRepository(
           property.value === undefined
             ? "null"
             : JSON.stringify(property.value);
-        const hiddenInt = property.hidden ? 1 : 0;
+        const hiddenInt = property.hidden === true ? 1 : 0;
 
         executeInsert(
           db,
@@ -455,7 +468,7 @@ export function createRoleRepository(
             q,
             p: {
               parentId: string;
-              orgId: string;
+              tenantId: string;
               name: string;
               value: string;
               hidden: number;
@@ -466,7 +479,7 @@ export function createRoleRepository(
               .insertInto("role_property")
               .values({
                 parent_id: p.parentId,
-                org_id: p.orgId,
+                tenant_id: p.tenantId,
                 name: p.name,
                 value: p.value,
                 hidden: p.hidden,
@@ -474,7 +487,7 @@ export function createRoleRepository(
               })
               .onConflict(
                 (rp) => rp.parent_id,
-                (rp) => rp.org_id,
+                (rp) => rp.tenant_id,
                 (rp) => rp.name,
               )
               .doUpdateSet({
@@ -483,7 +496,7 @@ export function createRoleRepository(
               }),
           {
             parentId: roleId,
-            orgId: inputOrgId,
+            tenantId: inputTenantId,
             name: property.name,
             value: valueStr,
             hidden: hiddenInt,
@@ -510,8 +523,9 @@ export function createRoleRepository(
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
     async deleteProperty(
-      inputOrgId: string,
+      inputTenantId: string,
       roleId: string,
       name: string,
     ): Promise<Result<boolean>> {
@@ -519,16 +533,16 @@ export function createRoleRepository(
         executeDelete(
           db,
           schema,
-          (q, p: { roleId: string; orgId: string; name: string }) =>
+          (q, p: { roleId: string; tenantId: string; name: string }) =>
             q
               .deleteFrom("role_property")
               .where(
                 (rp) =>
                   rp.parent_id === p.roleId &&
-                  rp.org_id === p.orgId &&
+                  rp.tenant_id === p.tenantId &&
                   rp.name === p.name,
               ),
-          { roleId, orgId: inputOrgId, name },
+          { roleId, tenantId: inputTenantId, name },
         );
         return { success: true, data: true };
       } catch (error) {

@@ -1,14 +1,54 @@
+# Docker Compose configuration for Permiso
+#
+# Usage:
+#   Development: docker compose up
+#   Testing:     Used by scripts/test-integration.sh compose
+#
+# Required environment variables (set by test-integration.sh or export manually):
+#   ENV_FILE - path to env file with configuration
+#
+# Host path variables (all have defaults):
+#   PERMISO_DATA_HOST_DIR - host path for permiso db (default: ./data/permiso/db)
+
 services:
-  postgres:
-    image: postgres:16
-    restart: always
-    ports:
-      - 5432:5432
+  # Database migrations - runs once and exits
+  permiso-migrations:
+    image: permiso-migrations:latest
+    container_name: permiso-migrations
     environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      - NODE_ENV=${NODE_ENV:-production}
+      - PERMISO_DATA_DIR=/app/data/permiso/db
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    command: ["postgres", "-c", "log_statement=all"]
+      - ${PERMISO_DATA_HOST_DIR:-./data/permiso/db}:/app/data/permiso/db
+
+  # Permiso Server
+  permiso:
+    image: permiso:latest
+    container_name: permiso
+    ports:
+      - "127.0.0.1:5001:5001"
+    env_file:
+      - ${ENV_FILE:-../.env}
+    environment:
+      # Container-specific paths and hosts (override values from env_file)
+      - NODE_ENV=${NODE_ENV:-production}
+      - PERMISO_SERVER_HOST=0.0.0.0
+      - PERMISO_SERVER_PORT=5001
+      - PERMISO_DATA_DIR=/app/data/permiso/db
+    volumes:
+      - ${PERMISO_DATA_HOST_DIR:-./data/permiso/db}:/app/data/permiso/db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:5001/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      permiso-migrations:
+        condition: service_completed_successfully

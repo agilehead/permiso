@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Type utilities for string case conversion
 type CamelCase<S extends string> =
   S extends `${infer P1}_${infer P2}${infer P3}`
@@ -29,7 +28,7 @@ type SnakeCaseKeys<T> = T extends readonly unknown[]
 
 // Runtime function to convert string to camelCase
 function stringToCamelCase(str: string): string {
-  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  return str.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }
 
 // Runtime function to convert string to snake_case
@@ -48,11 +47,7 @@ export function toCamelCase<T extends Record<string, unknown>>(
     return obj as unknown as CamelCaseKeys<T>;
   }
 
-  if (obj === null || typeof obj !== "object") {
-    return obj as any;
-  }
-
-  const result: any = {};
+  const result: Record<string, unknown> = {};
 
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -73,9 +68,6 @@ export function toSnakeCase<T extends Record<string, unknown>>(
     return obj as unknown as SnakeCaseKeys<T>;
   }
 
-  if (obj === null || typeof obj !== "object") {
-    return obj as SnakeCaseKeys<T>;
-  }
 
   const result: Record<string, unknown> = {};
 

@@ -1,6 +1,6 @@
 import { assignUserRole } from "../../domain/user/assign-user-role.js";
 import { getUser } from "./get-user.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 // Re-export domain function
 export { assignUserRole };

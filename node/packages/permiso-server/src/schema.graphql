@@ -1,7 +1,7 @@
 scalar JSON
 
 # Core Types
-type Organization {
+type Tenant {
   id: ID!
   name: String!
   description: String
@@ -17,7 +17,7 @@ type Organization {
 
 type User {
   id: ID!
-  orgId: ID!
+  tenantId: ID!
   identityProvider: String!
   identityProviderUserId: String!
   properties: [Property!]!
@@ -25,7 +25,7 @@ type User {
   updatedAt: Float!
   
   # Relationships
-  organization: Organization!
+  tenant: Tenant!
   roles: [Role!]!
   permissions: [UserPermission!]!
   effectivePermissions(resourceId: String, action: String): [EffectivePermission!]!
@@ -33,7 +33,7 @@ type User {
 
 type Role {
   id: ID!
-  orgId: ID!
+  tenantId: ID!
   name: String!
   description: String
   properties: [Property!]!
@@ -41,21 +41,21 @@ type Role {
   updatedAt: Float!
   
   # Relationships
-  organization: Organization!
+  tenant: Tenant!
   users: [User!]!
   permissions: [RolePermission!]!
 }
 
 type Resource {
   id: ID!  # This is the path (e.g., /india/data/legal)
-  orgId: ID!
+  tenantId: ID!
   name: String
   description: String
   createdAt: Float!
   updatedAt: Float!
   
   # Relationships
-  organization: Organization!
+  tenant: Tenant!
   permissions: [Permission!]!
 }
 
@@ -70,7 +70,7 @@ interface Permission {
   resourceId: ID!
   action: String!
   createdAt: Float!
-  organization: Organization!
+  tenant: Tenant!
   resource: Resource!
 }
 
@@ -79,7 +79,7 @@ type UserPermission implements Permission {
   resourceId: ID!
   action: String!
   createdAt: Float!
-  organization: Organization!
+  tenant: Tenant!
   resource: Resource!
   user: User!
 }
@@ -89,7 +89,7 @@ type RolePermission implements Permission {
   resourceId: ID!
   action: String!
   createdAt: Float!
-  organization: Organization!
+  tenant: Tenant!
   resource: Resource!
   role: Role!
 }
@@ -103,8 +103,8 @@ type EffectivePermission {
 }
 
 # Connection types for pagination
-type OrganizationConnection {
-  nodes: [Organization!]!
+type TenantConnection {
+  nodes: [Tenant!]!
   totalCount: Int!
   pageInfo: PageInfo!
 }
@@ -136,31 +136,31 @@ type PageInfo {
 
 # Query type
 type Query {
-  # Organizations
-  organization(id: ID!): Organization
-  organizations(filter: OrganizationFilter, pagination: PaginationInput): OrganizationConnection!
-  organizationsByIds(ids: [ID!]!): [Organization!]!
-  organizationProperty(orgId: ID!, propertyName: String!): Property
+  # Tenants
+  tenant(id: ID!): Tenant
+  tenants(filter: TenantFilter, pagination: PaginationInput): TenantConnection!
+  tenantsByIds(ids: [ID!]!): [Tenant!]!
+  tenantProperty(tenantId: ID!, propertyName: String!): Property
   
-  # Users (scoped to org via x-org-id header)
+  # Users (scoped to tenant via x-tenant-id header)
   user(userId: ID!): User
   users(filter: UserFilter, pagination: PaginationInput): UserConnection!
   usersByIds(ids: [ID!]!): [User!]!
   usersByIdentity(identityProvider: String!, identityProviderUserId: String!): [User!]!
   userProperty(userId: ID!, propertyName: String!): Property
   
-  # Roles (scoped to org via x-org-id header)
+  # Roles (scoped to tenant via x-tenant-id header)
   role(roleId: ID!): Role
   roles(filter: RoleFilter, pagination: PaginationInput): RoleConnection!
   rolesByIds(ids: [ID!]!): [Role!]!
   roleProperty(roleId: ID!, propertyName: String!): Property
   
-  # Resources (scoped to org via x-org-id header)
+  # Resources (scoped to tenant via x-tenant-id header)
   resource(resourceId: ID!): Resource
   resources(filter: ResourceFilter, pagination: PaginationInput): ResourceConnection!
   resourcesByIdPrefix(idPrefix: String!): [Resource!]!
   
-  # Permissions (scoped to org via x-org-id header)
+  # Permissions (scoped to tenant via x-tenant-id header)
   userPermissions(userId: ID!, resourceId: String, action: String): [UserPermission!]!
   rolePermissions(roleId: ID!, resourceId: String, action: String): [RolePermission!]!
   effectivePermissions(userId: ID!, resourceId: String!, action: String): [EffectivePermission!]!
@@ -176,16 +176,16 @@ type Query {
 
 # Mutation type
 type Mutation {
-  # Organizations
-  createOrganization(input: CreateOrganizationInput!): Organization!
-  updateOrganization(id: ID!, input: UpdateOrganizationInput!): Organization!
-  deleteOrganization(id: ID!, safetyKey: String): Boolean!
+  # Tenants
+  createTenant(input: CreateTenantInput!): Tenant!
+  updateTenant(id: ID!, input: UpdateTenantInput!): Tenant!
+  deleteTenant(id: ID!, safetyKey: String): Boolean!
   
-  # Organization Properties
-  setOrganizationProperty(orgId: ID!, name: String!, value: JSON, hidden: Boolean): Property!
-  deleteOrganizationProperty(orgId: ID!, name: String!): Boolean!
+  # Tenant Properties
+  setTenantProperty(tenantId: ID!, name: String!, value: JSON, hidden: Boolean): Property!
+  deleteTenantProperty(tenantId: ID!, name: String!): Boolean!
   
-  # Users (scoped to org via x-org-id header)
+  # Users (scoped to tenant via x-tenant-id header)
   createUser(input: CreateUserInput!): User!
   updateUser(userId: ID!, input: UpdateUserInput!): User!
   deleteUser(userId: ID!): Boolean!
@@ -198,7 +198,7 @@ type Mutation {
   assignUserRole(userId: ID!, roleId: ID!): User!
   unassignUserRole(userId: ID!, roleId: ID!): User!
   
-  # Roles (scoped to org via x-org-id header)
+  # Roles (scoped to tenant via x-tenant-id header)
   createRole(input: CreateRoleInput!): Role!
   updateRole(roleId: ID!, input: UpdateRoleInput!): Role!
   deleteRole(roleId: ID!): Boolean!
@@ -207,12 +207,12 @@ type Mutation {
   setRoleProperty(roleId: ID!, name: String!, value: JSON, hidden: Boolean): Property!
   deleteRoleProperty(roleId: ID!, name: String!): Boolean!
   
-  # Resources (scoped to org via x-org-id header)
+  # Resources (scoped to tenant via x-tenant-id header)
   createResource(input: CreateResourceInput!): Resource!
   updateResource(resourceId: ID!, input: UpdateResourceInput!): Resource!
   deleteResource(resourceId: ID!): Boolean!
   
-  # Permissions (scoped to org via x-org-id header)
+  # Permissions (scoped to tenant via x-tenant-id header)
   grantUserPermission(input: GrantUserPermissionInput!): UserPermission!
   revokeUserPermission(userId: ID!, resourceId: ID!, action: String!): Boolean!
   
@@ -221,14 +221,14 @@ type Mutation {
 }
 
 # Input types
-input CreateOrganizationInput {
+input CreateTenantInput {
   id: ID!
   name: String!
   description: String
   properties: [PropertyInput!]
 }
 
-input UpdateOrganizationInput {
+input UpdateTenantInput {
   name: String
   description: String
 }
@@ -288,7 +288,7 @@ input GrantRolePermissionInput {
 }
 
 # Filter inputs
-input OrganizationFilter {
+input TenantFilter {
   properties: [PropertyFilter!]
 }
 

@@ -1,5 +1,5 @@
 import { getResourcesByIdPrefix } from "../../domain/resource/get-resources-by-id-prefix.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const resourcesByIdPrefixResolver = {
   Query: {

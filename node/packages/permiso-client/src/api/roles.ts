@@ -1,5 +1,5 @@
 import { graphqlRequest } from "../http-client.js";
-import { Result, PermisoConfig } from "../types.js";
+import type { Result, PermisoConfig } from "../types.js";
 import { buildHeaders } from "./utils.js";
 import type {
   Role,
@@ -11,17 +11,17 @@ import type {
 } from "../generated/types.js";
 
 /**
- * Get a role by organization and role ID
+ * Get a role by tenant and role ID
  */
 export async function getRole(
   config: PermisoConfig,
   roleId: string,
-): Promise<Result<Role | null, Error>> {
+): Promise<Result<Role | null>> {
   const query = `
     query GetRole($roleId: ID!) {
       role(roleId: $roleId) {
         id
-        orgId
+        tenantId
         name
         description
         properties {
@@ -53,7 +53,7 @@ export async function getRole(
 }
 
 /**
- * List roles in an organization with optional filtering and pagination
+ * List roles in a tenant with optional filtering and pagination
  */
 export async function listRoles(
   config: PermisoConfig,
@@ -72,8 +72,7 @@ export async function listRoles(
         startCursor?: string;
         endCursor?: string;
       };
-    },
-    Error
+    }
   >
 > {
   const query = `
@@ -81,7 +80,7 @@ export async function listRoles(
       roles(filter: $filter, pagination: $pagination) {
         nodes {
           id
-          orgId
+          tenantId
           name
           description
           properties {
@@ -140,12 +139,12 @@ export async function listRoles(
 export async function getRolesByIds(
   config: PermisoConfig,
   ids: string[],
-): Promise<Result<Role[], Error>> {
+): Promise<Result<Role[]>> {
   const query = `
     query GetRolesByIds($ids: [ID!]!) {
       rolesByIds(ids: $ids) {
         id
-        orgId
+        tenantId
         name
         description
         properties {
@@ -182,12 +181,12 @@ export async function getRolesByIds(
 export async function createRole(
   config: PermisoConfig,
   input: CreateRoleInput,
-): Promise<Result<Role, Error>> {
+): Promise<Result<Role>> {
   const mutation = `
     mutation CreateRole($input: CreateRoleInput!) {
       createRole(input: $input) {
         id
-        orgId
+        tenantId
         name
         description
         properties {
@@ -225,12 +224,12 @@ export async function updateRole(
   config: PermisoConfig,
   roleId: string,
   input: UpdateRoleInput,
-): Promise<Result<Role, Error>> {
+): Promise<Result<Role>> {
   const mutation = `
     mutation UpdateRole($roleId: ID!, $input: UpdateRoleInput!) {
       updateRole(roleId: $roleId, input: $input) {
         id
-        orgId
+        tenantId
         name
         description
         properties {
@@ -267,7 +266,7 @@ export async function updateRole(
 export async function deleteRole(
   config: PermisoConfig,
   roleId: string,
-): Promise<Result<boolean, Error>> {
+): Promise<Result<boolean>> {
   const mutation = `
     mutation DeleteRole($roleId: ID!) {
       deleteRole(roleId: $roleId)
@@ -297,7 +296,7 @@ export async function getRoleProperty(
   config: PermisoConfig,
   roleId: string,
   propertyName: string,
-): Promise<Result<Property | null, Error>> {
+): Promise<Result<Property | null>> {
   const query = `
     query GetRoleProperty($roleId: ID!, $propertyName: String!) {
       roleProperty(roleId: $roleId, propertyName: $propertyName) {
@@ -334,7 +333,7 @@ export async function setRoleProperty(
   name: string,
   value: unknown,
   hidden?: boolean,
-): Promise<Result<Property, Error>> {
+): Promise<Result<Property>> {
   const mutation = `
     mutation SetRoleProperty(
       $roleId: ID!,
@@ -379,7 +378,7 @@ export async function deleteRoleProperty(
   config: PermisoConfig,
   roleId: string,
   name: string,
-): Promise<Result<boolean, Error>> {
+): Promise<Result<boolean>> {
   const mutation = `
     mutation DeleteRoleProperty($roleId: ID!, $name: String!) {
       deleteRoleProperty(roleId: $roleId, name: $name)

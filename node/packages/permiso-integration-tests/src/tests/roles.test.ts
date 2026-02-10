@@ -1,17 +1,17 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createOrgClient } from "../index.js";
+import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
 
 describe("Roles", () => {
-  const getTestOrgClient = () => createOrgClient("test-org");
+  const getTestTenantClient = () => createTenantClient("test-org");
 
   beforeEach(async () => {
-    await testDb.truncateAllTables();
+    truncateAllTables(testDb);
 
-    // Create test organization using ROOT client
+    // Create test tenant using ROOT client
     const mutation = gql`
-      mutation CreateOrganization($input: CreateOrganizationInput!) {
-        createOrganization(input: $input) {
+      mutation CreateTenant($input: CreateTenantInput!) {
+        createTenant(input: $input) {
           id
         }
       }
@@ -20,19 +20,19 @@ describe("Roles", () => {
     await rootClient.mutate(mutation, {
       input: {
         id: "test-org",
-        name: "Test Organization",
+        name: "Test Tenant",
       },
     });
   });
 
   describe("createRole", () => {
     it("should create a new role", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       const mutation = gql`
         mutation CreateRole($input: CreateRoleInput!) {
           createRole(input: $input) {
             id
-            orgId
+            tenantId
             name
             description
             properties {
@@ -44,7 +44,7 @@ describe("Roles", () => {
         }
       `;
 
-      const result = await testOrgClient.mutate(mutation, {
+      const result = await testTenantClient.mutate(mutation, {
         input: {
           id: "admin",
           name: "Administrator",
@@ -58,7 +58,7 @@ describe("Roles", () => {
 
       const role = result.data?.createRole;
       expect(role?.id).to.equal("admin");
-      expect(role?.orgId).to.equal("test-org");
+      expect(role?.tenantId).to.equal("test-org");
       expect(role?.name).to.equal("Administrator");
       expect(role?.description).to.equal("Full system access");
       expect(role?.properties).to.have.lengthOf(2);
@@ -78,9 +78,9 @@ describe("Roles", () => {
       });
     });
 
-    it("should fail when trying to access non-existent organization", async () => {
-      // Switch to a non-existent organization context
-      const nonExistentOrgClient = createOrgClient("non-existent-org");
+    it("should fail when trying to access non-existent tenant", async () => {
+      // Switch to a non-existent tenant context
+      const nonExistentTenantClient = createTenantClient("non-existent-org");
 
       const mutation = gql`
         mutation CreateRole($input: CreateRoleInput!) {
@@ -91,7 +91,7 @@ describe("Roles", () => {
       `;
 
       try {
-        const result = await nonExistentOrgClient.mutate(mutation, {
+        const result = await nonExistentTenantClient.mutate(mutation, {
           input: {
             id: "admin",
             name: "Administrator",
@@ -106,7 +106,7 @@ describe("Roles", () => {
               msg.includes("foreign key violation") ||
               msg.includes("is not present in table") ||
               msg.includes("constraint") ||
-              msg.includes("organization") ||
+              msg.includes("tenant") ||
               msg.includes("not found"),
           );
         } else {
@@ -115,13 +115,13 @@ describe("Roles", () => {
       } catch (error: any) {
         // If an exception was thrown, check it
         const errorMessage =
-          error.graphQLErrors?.[0]?.message || error.message || "";
+          error.graphQLErrors?.[0]?.message ?? error.message ?? "";
         expect(errorMessage.toLowerCase()).to.satisfy(
           (msg: string) =>
             msg.includes("foreign key violation") ||
             msg.includes("is not present in table") ||
             msg.includes("constraint") ||
-            msg.includes("organization") ||
+            msg.includes("tenant") ||
             msg.includes("not found"),
         );
       }
@@ -129,8 +129,8 @@ describe("Roles", () => {
   });
 
   describe("roles query", () => {
-    it("should list roles in an organization", async () => {
-      const testOrgClient = getTestOrgClient();
+    it("should list roles in a tenant", async () => {
+      const testTenantClient = getTestTenantClient();
       const createRoleMutation = gql`
         mutation CreateRole($input: CreateRoleInput!) {
           createRole(input: $input) {
@@ -140,14 +140,14 @@ describe("Roles", () => {
       `;
 
       // Create multiple roles
-      await testOrgClient.mutate(createRoleMutation, {
+      await testTenantClient.mutate(createRoleMutation, {
         input: {
           id: "admin",
           name: "Administrator",
         },
       });
 
-      await testOrgClient.mutate(createRoleMutation, {
+      await testTenantClient.mutate(createRoleMutation, {
         input: {
           id: "user",
           name: "User",
@@ -160,7 +160,7 @@ describe("Roles", () => {
           roles {
             nodes {
               id
-              orgId
+              tenantId
               name
               description
             }
@@ -168,7 +168,7 @@ describe("Roles", () => {
         }
       `;
 
-      const result = await testOrgClient.query(query, {});
+      const result = await testTenantClient.query(query, {});
 
       expect(result.data?.roles?.nodes).to.have.lengthOf(2);
       const roleIds = result.data?.roles?.nodes.map((r: any) => r.id);
@@ -177,8 +177,8 @@ describe("Roles", () => {
   });
 
   describe("role query", () => {
-    it("should retrieve a role by orgId and roleId", async () => {
-      const testOrgClient = getTestOrgClient();
+    it("should retrieve a role by tenant and roleId", async () => {
+      const testTenantClient = getTestTenantClient();
       // Create role
       const createMutation = gql`
         mutation CreateRole($input: CreateRoleInput!) {
@@ -188,7 +188,7 @@ describe("Roles", () => {
         }
       `;
 
-      await testOrgClient.mutate(createMutation, {
+      await testTenantClient.mutate(createMutation, {
         input: {
           id: "admin",
           name: "Administrator",
@@ -202,7 +202,7 @@ describe("Roles", () => {
         query GetRole($roleId: ID!) {
           role(roleId: $roleId) {
             id
-            orgId
+            tenantId
             name
             description
             properties {
@@ -216,7 +216,7 @@ describe("Roles", () => {
         }
       `;
 
-      const result = await testOrgClient.query(query, {
+      const result = await testTenantClient.query(query, {
         roleId: "admin",
       });
 
@@ -231,7 +231,7 @@ describe("Roles", () => {
 
   describe("updateRole", () => {
     it("should update role details", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       // Create role
       const createMutation = gql`
         mutation CreateRole($input: CreateRoleInput!) {
@@ -241,7 +241,7 @@ describe("Roles", () => {
         }
       `;
 
-      await testOrgClient.mutate(createMutation, {
+      await testTenantClient.mutate(createMutation, {
         input: {
           id: "admin",
           name: "Administrator",
@@ -264,7 +264,7 @@ describe("Roles", () => {
         }
       `;
 
-      const result = await testOrgClient.mutate(updateMutation, {
+      const result = await testTenantClient.mutate(updateMutation, {
         roleId: "admin",
         input: {
           name: "Super Administrator",
@@ -298,7 +298,7 @@ describe("Roles", () => {
         }
       `;
 
-      const setPropResult = await testOrgClient.mutate(setPropMutation, {
+      const setPropResult = await testTenantClient.mutate(setPropMutation, {
         roleId: "admin",
         name: "level",
         value: "maximum",
@@ -322,7 +322,7 @@ describe("Roles", () => {
         }
       `;
 
-      const roleResult = await testOrgClient.query(query, {
+      const roleResult = await testTenantClient.query(query, {
         roleId: "admin",
       });
       expect(roleResult.data?.role?.properties).to.have.lengthOf(1);
@@ -337,7 +337,7 @@ describe("Roles", () => {
 
   describe("deleteRole", () => {
     it("should delete a role", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       // Create role
       const createMutation = gql`
         mutation CreateRole($input: CreateRoleInput!) {
@@ -347,7 +347,7 @@ describe("Roles", () => {
         }
       `;
 
-      await testOrgClient.mutate(createMutation, {
+      await testTenantClient.mutate(createMutation, {
         input: {
           id: "admin",
           name: "Administrator",
@@ -361,7 +361,7 @@ describe("Roles", () => {
         }
       `;
 
-      const result = await testOrgClient.mutate(deleteMutation, {
+      const result = await testTenantClient.mutate(deleteMutation, {
         roleId: "admin",
       });
 
@@ -376,7 +376,7 @@ describe("Roles", () => {
         }
       `;
 
-      const queryResult = await testOrgClient.query(query, {
+      const queryResult = await testTenantClient.query(query, {
         roleId: "admin",
       });
 

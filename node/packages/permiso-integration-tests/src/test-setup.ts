@@ -1,48 +1,76 @@
+import { dirname } from "path";
 import {
-  TestDatabase,
+  type TestDatabase,
+  getTestDatabaseInstance,
+  getExternalTestDatabaseInstance,
+  setupTestDatabase,
+  teardownTestDatabase,
   TestServer,
   testLogger,
 } from "@codespin/permiso-test-utils";
 import { GraphQLClient } from "./utils/graphql-client.js";
 
+const externalUrl = process.env.TEST_URL;
+const externalDbPath = process.env.TEST_DB_PATH;
+
 export let testDb: TestDatabase;
-export let server: TestServer;
-export let rootClient: GraphQLClient; // For organization management (ROOT operations)
+export let server: TestServer | undefined;
+export let rootClient: GraphQLClient; // For tenant management (ROOT operations)
 
 export async function setupTests() {
-  // Setup database
-  testDb = TestDatabase.getInstance("permiso_test", testLogger);
-  await testDb.setup();
+  if (externalUrl !== undefined && externalUrl !== "") {
+    // External mode: connect to running server (Docker Compose)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- validated by TEST_URL check above
+    testDb = getExternalTestDatabaseInstance(externalDbPath!, testLogger);
+    await setupTestDatabase(testDb);
 
-  // Start server
-  server = new TestServer({
-    port: 5002,
-    dbName: "permiso_test",
-    logger: testLogger,
-  });
-  await server.start();
+    rootClient = new GraphQLClient(externalUrl + "/graphql", {
+      headers: {
+        authorization: "Bearer test-api-key",
+      },
+      logger: testLogger,
+    });
+  } else {
+    // Local mode (current behavior)
+    testDb = getTestDatabaseInstance(testLogger);
+    await setupTestDatabase(testDb);
 
-  // Initialize ROOT client for organization management
-  // No org ID header = unrestricted database access for ROOT operations
-  rootClient = new GraphQLClient("http://localhost:5002/graphql", {
-    headers: {
-      authorization: "Bearer test-token",
-    },
-    logger: testLogger,
-  });
+    server = new TestServer({
+      port: 5002,
+      dataDir: dirname(testDb.dbPath),
+      logger: testLogger,
+    });
+    await server.start();
+
+    rootClient = new GraphQLClient("http://localhost:5002/graphql", {
+      headers: {
+        authorization: "Bearer test-token",
+      },
+      logger: testLogger,
+    });
+  }
 
   testLogger.info("Test environment ready");
 }
 
 /**
- * Create a GraphQL client for a specific organization context
- * Use this for RLS operations within a specific organization
+ * Create a GraphQL client for a specific tenant context
+ * Use this for operations within a specific tenant
  */
-export function createOrgClient(orgId: string): GraphQLClient {
-  return new GraphQLClient("http://localhost:5002/graphql", {
+export function createTenantClient(tenantId: string): GraphQLClient {
+  const baseUrl =
+    externalUrl !== undefined && externalUrl !== ""
+      ? externalUrl
+      : "http://localhost:5002";
+  const token =
+    externalUrl !== undefined && externalUrl !== ""
+      ? "test-api-key"
+      : "test-token";
+
+  return new GraphQLClient(baseUrl + "/graphql", {
     headers: {
-      authorization: "Bearer test-token",
-      "x-org-id": orgId,
+      authorization: `Bearer ${token}`,
+      "x-tenant-id": tenantId,
     },
     logger: testLogger,
   });
@@ -51,12 +79,10 @@ export function createOrgClient(orgId: string): GraphQLClient {
 export async function teardownTests() {
   try {
     // Stop GraphQL clients
-    if (rootClient) {
-      await rootClient.stop();
-    }
+    await rootClient.stop();
 
-    // Stop server
-    if (server) {
+    // Stop server (only in local mode)
+    if (server !== undefined) {
       await server.stop();
     }
 
@@ -64,9 +90,7 @@ export async function teardownTests() {
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Teardown database
-    if (testDb) {
-      await testDb.teardown();
-    }
+    await teardownTestDatabase(testDb);
 
     testLogger.info("Cleanup complete");
   } catch (error) {

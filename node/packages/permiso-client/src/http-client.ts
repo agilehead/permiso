@@ -1,10 +1,11 @@
-import {
+import type {
   Result,
-  success,
-  failure,
   GraphQLResponse,
   GraphQLError,
-  Logger,
+  Logger} from "./types.js";
+import {
+  success,
+  failure
 } from "./types.js";
 
 export type GraphQLRequestOptions = {
@@ -21,17 +22,18 @@ export type GraphQLRequestOptions = {
  */
 export async function graphqlRequest<T>(
   options: GraphQLRequestOptions,
-): Promise<Result<T, Error>> {
+): Promise<Result<T>> {
   try {
     options.logger?.debug("GraphQL request:", {
       endpoint: options.endpoint,
-      query: options.query.trim().split("\n")[0] + "...",
+      query: (options.query.trim().split("\n")[0] ?? "") + "...",
       variables: options.variables,
     });
     const controller = new AbortController();
-    const timeoutId = options.timeout
-      ? setTimeout(() => controller.abort(), options.timeout)
-      : null;
+    const timeoutId =
+      options.timeout != null && options.timeout > 0
+        ? setTimeout(() => { controller.abort(); }, options.timeout)
+        : null;
 
     const response = await fetch(options.endpoint, {
       method: "POST",
@@ -46,7 +48,7 @@ export async function graphqlRequest<T>(
       signal: controller.signal,
     });
 
-    if (timeoutId) {
+    if (timeoutId != null) {
       clearTimeout(timeoutId);
     }
 
@@ -54,12 +56,12 @@ export async function graphqlRequest<T>(
 
     options.logger?.debug("GraphQL response:", {
       status: response.status,
-      hasData: !!result.data,
+      hasData: result.data != null,
       hasErrors: !!(result.errors && result.errors.length > 0),
     });
 
     // Check for GraphQL errors
-    if (result.errors && result.errors.length > 0) {
+    if (result.errors != null && result.errors.length > 0) {
       const error = result.errors[0];
       if (error) {
         const errorMessage = formatGraphQLError(error);
@@ -70,7 +72,7 @@ export async function graphqlRequest<T>(
     }
 
     // Check for data
-    if (!result.data) {
+    if (result.data == null) {
       return failure(new Error("No data returned from GraphQL query"));
     }
 
@@ -95,7 +97,7 @@ export async function graphqlRequest<T>(
 function formatGraphQLError(error: GraphQLError): string {
   let message = error.message;
 
-  if (error.extensions?.code) {
+  if (error.extensions?.code != null && error.extensions.code !== "") {
     message = `[${error.extensions.code}] ${message}`;
   }
 

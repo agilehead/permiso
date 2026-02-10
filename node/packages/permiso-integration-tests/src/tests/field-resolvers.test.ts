@@ -1,32 +1,32 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createOrgClient } from "../index.js";
+import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
 
 describe("Field Resolvers and Nested Queries", () => {
-  const getAcmeClient = () => createOrgClient("acme-corp");
+  const getAcmeClient = () => createTenantClient("acme-corp");
 
   beforeEach(async () => {
-    await testDb.truncateAllTables();
+    truncateAllTables(testDb);
 
     // Create test data
     await setupTestData();
   });
 
   async function setupTestData() {
-    // Create organizations
-    const orgMutation = gql`
-      mutation CreateOrganization($input: CreateOrganizationInput!) {
-        createOrganization(input: $input) {
+    // Create tenants
+    const tenantMutation = gql`
+      mutation CreateTenant($input: CreateTenantInput!) {
+        createTenant(input: $input) {
           id
         }
       }
     `;
 
-    await rootClient.mutate(orgMutation, {
+    await rootClient.mutate(tenantMutation, {
       input: {
         id: "acme-corp",
         name: "ACME Corporation",
-        description: "A test organization",
+        description: "A test tenant",
         properties: [
           { name: "tier", value: "enterprise" },
           { name: "employees", value: 500 },
@@ -34,7 +34,7 @@ describe("Field Resolvers and Nested Queries", () => {
       },
     });
 
-    await rootClient.mutate(orgMutation, {
+    await rootClient.mutate(tenantMutation, {
       input: {
         id: "startup-inc",
         name: "Startup Inc",
@@ -233,15 +233,15 @@ describe("Field Resolvers and Nested Queries", () => {
     });
   }
 
-  describe("Organization Field Resolvers", () => {
+  describe("Tenant Field Resolvers", () => {
     it("should resolve nested users with pagination and filtering", async () => {
       const query = gql`
-        query GetOrganizationWithUsers(
+        query GetTenantWithUsers(
           $id: ID!
           $userFilter: UserFilter
           $userPagination: PaginationInput
         ) {
-          organization(id: $id) {
+          tenant(id: $id) {
             id
             name
             users(filter: $userFilter, pagination: $userPagination) {
@@ -271,11 +271,11 @@ describe("Field Resolvers and Nested Queries", () => {
         },
       });
 
-      expect(result.data?.organization?.users?.nodes).to.have.lengthOf(1);
-      expect(result.data?.organization?.users?.nodes[0].id).to.equal(
+      expect(result.data?.tenant?.users?.nodes).to.have.lengthOf(1);
+      expect(result.data?.tenant?.users?.nodes[0].id).to.equal(
         "john-doe",
       );
-      expect(result.data?.organization?.users?.totalCount).to.equal(1);
+      expect(result.data?.tenant?.users?.totalCount).to.equal(1);
 
       // Test with pagination
       const paginatedResult = await rootClient.query(query, {
@@ -283,18 +283,18 @@ describe("Field Resolvers and Nested Queries", () => {
         userPagination: { limit: 2, offset: 0 },
       });
 
-      expect(paginatedResult.data?.organization?.users?.nodes).to.have.lengthOf(
+      expect(paginatedResult.data?.tenant?.users?.nodes).to.have.lengthOf(
         2,
       );
-      expect(paginatedResult.data?.organization?.users?.totalCount).to.equal(3);
-      expect(paginatedResult.data?.organization?.users?.pageInfo?.hasNextPage)
+      expect(paginatedResult.data?.tenant?.users?.totalCount).to.equal(3);
+      expect(paginatedResult.data?.tenant?.users?.pageInfo?.hasNextPage)
         .to.be.true;
     });
 
     it("should resolve nested roles with filtering", async () => {
       const query = gql`
-        query GetOrganizationWithRoles($id: ID!, $roleFilter: RoleFilter) {
-          organization(id: $id) {
+        query GetTenantWithRoles($id: ID!, $roleFilter: RoleFilter) {
+          tenant(id: $id) {
             id
             name
             roles(filter: $roleFilter) {
@@ -321,29 +321,29 @@ describe("Field Resolvers and Nested Queries", () => {
         },
       });
 
-      expect(result.data?.organization?.roles?.nodes).to.have.lengthOf(1);
-      expect(result.data?.organization?.roles?.nodes[0].id).to.equal("admin");
-      expect(result.data?.organization?.roles?.totalCount).to.equal(1);
+      expect(result.data?.tenant?.roles?.nodes).to.have.lengthOf(1);
+      expect(result.data?.tenant?.roles?.nodes[0].id).to.equal("admin");
+      expect(result.data?.tenant?.roles?.totalCount).to.equal(1);
 
       // Test without filter
       const allRolesResult = await rootClient.query(query, {
         id: "acme-corp",
       });
 
-      expect(allRolesResult.data?.organization?.roles?.nodes).to.have.lengthOf(
+      expect(allRolesResult.data?.tenant?.roles?.nodes).to.have.lengthOf(
         3,
       );
-      expect(allRolesResult.data?.organization?.roles?.totalCount).to.equal(3);
+      expect(allRolesResult.data?.tenant?.roles?.totalCount).to.equal(3);
     });
 
     it("should resolve nested resources with filtering", async () => {
       const acmeClient = getAcmeClient();
       const query = gql`
-        query GetOrganizationWithResources(
+        query GetTenantWithResources(
           $id: ID!
           $resourceFilter: ResourceFilter
         ) {
-          organization(id: $id) {
+          tenant(id: $id) {
             id
             name
             resources(filter: $resourceFilter) {
@@ -366,8 +366,8 @@ describe("Field Resolvers and Nested Queries", () => {
         },
       });
 
-      expect(result.data?.organization?.resources?.nodes).to.have.lengthOf(3);
-      const resourceIds = result.data?.organization?.resources?.nodes.map(
+      expect(result.data?.tenant?.resources?.nodes).to.have.lengthOf(3);
+      const resourceIds = result.data?.tenant?.resources?.nodes.map(
         (r: any) => r.id,
       );
       expect(resourceIds).to.include.members([
@@ -380,13 +380,13 @@ describe("Field Resolvers and Nested Queries", () => {
   });
 
   describe("User Field Resolvers", () => {
-    it("should resolve user organization", async () => {
+    it("should resolve user tenant", async () => {
       const acmeClient = getAcmeClient();
       const query = gql`
-        query GetUserWithOrganization($userId: ID!) {
+        query GetUserWithTenant($userId: ID!) {
           user(userId: $userId) {
             id
-            organization {
+            tenant {
               id
               name
               description
@@ -403,11 +403,11 @@ describe("Field Resolvers and Nested Queries", () => {
         userId: "john-doe",
       });
 
-      expect(result.data?.user?.organization?.id).to.equal("acme-corp");
-      expect(result.data?.user?.organization?.name).to.equal(
+      expect(result.data?.user?.tenant?.id).to.equal("acme-corp");
+      expect(result.data?.user?.tenant?.name).to.equal(
         "ACME Corporation",
       );
-      expect(result.data?.user?.organization?.properties).to.have.lengthOf(2);
+      expect(result.data?.user?.tenant?.properties).to.have.lengthOf(2);
     });
 
     it("should resolve user roles", async () => {
@@ -541,13 +541,13 @@ describe("Field Resolvers and Nested Queries", () => {
   });
 
   describe("Role Field Resolvers", () => {
-    it("should resolve role organization", async () => {
+    it("should resolve role tenant", async () => {
       const acmeClient = getAcmeClient();
       const query = gql`
-        query GetRoleWithOrganization($roleId: ID!) {
+        query GetRoleWithTenant($roleId: ID!) {
           role(roleId: $roleId) {
             id
-            organization {
+            tenant {
               id
               name
             }
@@ -559,8 +559,8 @@ describe("Field Resolvers and Nested Queries", () => {
         roleId: "admin",
       });
 
-      expect(result.data?.role?.organization?.id).to.equal("acme-corp");
-      expect(result.data?.role?.organization?.name).to.equal(
+      expect(result.data?.role?.tenant?.id).to.equal("acme-corp");
+      expect(result.data?.role?.tenant?.name).to.equal(
         "ACME Corporation",
       );
     });
@@ -637,13 +637,13 @@ describe("Field Resolvers and Nested Queries", () => {
   });
 
   describe("Resource Field Resolvers", () => {
-    it("should resolve resource organization", async () => {
+    it("should resolve resource tenant", async () => {
       const acmeClient = getAcmeClient();
       const query = gql`
-        query GetResourceWithOrganization($resourceId: ID!) {
+        query GetResourceWithTenant($resourceId: ID!) {
           resource(resourceId: $resourceId) {
             id
-            organization {
+            tenant {
               id
               name
             }
@@ -655,8 +655,8 @@ describe("Field Resolvers and Nested Queries", () => {
         resourceId: "/api/users/*",
       });
 
-      expect(result.data?.resource?.organization?.id).to.equal("acme-corp");
-      expect(result.data?.resource?.organization?.name).to.equal(
+      expect(result.data?.resource?.tenant?.id).to.equal("acme-corp");
+      expect(result.data?.resource?.tenant?.name).to.equal(
         "ACME Corporation",
       );
     });
@@ -716,14 +716,14 @@ describe("Field Resolvers and Nested Queries", () => {
   });
 
   describe("Permission Field Resolvers", () => {
-    it("should resolve permission organization", async () => {
+    it("should resolve permission tenant", async () => {
       const acmeClient = getAcmeClient();
       const query = gql`
         query GetUserPermissions($userId: ID!) {
           userPermissions(userId: $userId) {
             resourceId
             action
-            organization {
+            tenant {
               id
               name
             }
@@ -736,10 +736,10 @@ describe("Field Resolvers and Nested Queries", () => {
       });
 
       expect(result.data?.userPermissions).to.have.lengthOf(1);
-      expect(result.data?.userPermissions[0].organization?.id).to.equal(
+      expect(result.data?.userPermissions[0].tenant?.id).to.equal(
         "acme-corp",
       );
-      expect(result.data?.userPermissions[0].organization?.name).to.equal(
+      expect(result.data?.userPermissions[0].tenant?.name).to.equal(
         "ACME Corporation",
       );
     });
@@ -776,8 +776,8 @@ describe("Field Resolvers and Nested Queries", () => {
   describe("Deep Nested Queries", () => {
     it("should handle deeply nested queries efficiently", async () => {
       const query = gql`
-        query DeepNestedQuery($orgId: ID!, $userPagination: PaginationInput) {
-          organization(id: $orgId) {
+        query DeepNestedQuery($tenantId: ID!, $userPagination: PaginationInput) {
+          tenant(id: $tenantId) {
             id
             name
             users(pagination: $userPagination) {
@@ -792,7 +792,7 @@ describe("Field Resolvers and Nested Queries", () => {
                     resource {
                       id
                       name
-                      organization {
+                      tenant {
                         id
                         name
                       }
@@ -822,7 +822,7 @@ describe("Field Resolvers and Nested Queries", () => {
                 id
                 users {
                   id
-                  organization {
+                  tenant {
                     id
                   }
                 }
@@ -840,24 +840,24 @@ describe("Field Resolvers and Nested Queries", () => {
       `;
 
       const result = await rootClient.query(query, {
-        orgId: "acme-corp",
+        tenantId: "acme-corp",
         userPagination: { limit: 5 },
       });
 
       // Verify the structure is resolved correctly
-      const org = result.data?.organization;
-      expect(org?.id).to.equal("acme-corp");
+      const tenantData = result.data?.tenant;
+      expect(tenantData?.id).to.equal("acme-corp");
 
       // Check users
-      expect(org?.users?.nodes).to.have.length.at.least(1);
-      const user = org?.users?.nodes[0];
+      expect(tenantData?.users?.nodes).to.have.length.at.least(1);
+      const user = tenantData?.users?.nodes[0];
       expect(user?.roles).to.have.length.at.least(1);
 
       // Check role permissions are resolved
       const role = user?.roles[0];
       expect(role?.permissions).to.have.length.at.least(1);
       expect(role?.permissions[0]?.resource?.id).to.be.a("string");
-      expect(role?.permissions[0]?.resource?.organization?.id).to.equal(
+      expect(role?.permissions[0]?.resource?.tenant?.id).to.equal(
         "acme-corp",
       );
 
@@ -865,10 +865,10 @@ describe("Field Resolvers and Nested Queries", () => {
       expect(user?.effectivePermissions).to.have.length.at.least(1);
 
       // Check roles
-      expect(org?.roles?.nodes).to.have.length.at.least(1);
-      const orgRole = org?.roles?.nodes[0];
-      expect(orgRole?.users).to.have.length.at.least(0);
-      expect(orgRole?.permissions).to.have.length.at.least(0);
+      expect(tenantData?.roles?.nodes).to.have.length.at.least(1);
+      const tenantRole = tenantData?.roles?.nodes[0];
+      expect(tenantRole?.users).to.have.length.at.least(0);
+      expect(tenantRole?.permissions).to.have.length.at.least(0);
     });
 
     it("should handle circular references in nested queries", async () => {
@@ -877,12 +877,12 @@ describe("Field Resolvers and Nested Queries", () => {
         query CircularQuery($userId: ID!) {
           user(userId: $userId) {
             id
-            organization {
+            tenant {
               id
               users(pagination: { limit: 2 }) {
                 nodes {
                   id
-                  organization {
+                  tenant {
                     id
                     name
                   }
@@ -910,14 +910,14 @@ describe("Field Resolvers and Nested Queries", () => {
       // Verify circular references are handled correctly
       const user = result.data?.user;
       expect(user?.id).to.equal("john-doe");
-      expect(user?.organization?.id).to.equal("acme-corp");
+      expect(user?.tenant?.id).to.equal("acme-corp");
 
-      const orgUsers = user?.organization?.users?.nodes;
+      const orgUsers = user?.tenant?.users?.nodes;
       expect(orgUsers).to.have.length.at.least(1);
 
-      // Check that nested organization reference works
+      // Check that nested tenant reference works
       orgUsers?.forEach((u: any) => {
-        expect(u.organization?.id).to.equal("acme-corp");
+        expect(u.tenant?.id).to.equal("acme-corp");
 
         // Check role users
         u.roles?.forEach((r: any) => {
@@ -932,11 +932,11 @@ describe("Field Resolvers and Nested Queries", () => {
 
   describe("Complex Query Scenarios", () => {
     it("should handle mixed queries with multiple root fields", async () => {
-      // Use org client since root-level queries (users, roles, resources) require org context
+      // Use tenant client since root-level queries (users, roles, resources) require tenant context
       const acmeClient = getAcmeClient();
       const query = gql`
-        query ComplexMultiRootQuery($orgId: ID!) {
-          organization(id: $orgId) {
+        query ComplexMultiRootQuery($tenantId: ID!) {
+          tenant(id: $tenantId) {
             id
             name
             users {
@@ -972,11 +972,11 @@ describe("Field Resolvers and Nested Queries", () => {
         }
       `;
 
-      const result = await acmeClient.query(query, { orgId: "acme-corp" });
+      const result = await acmeClient.query(query, { tenantId: "acme-corp" });
 
       // Verify all root fields resolved
-      expect(result.data?.organization?.id).to.equal("acme-corp");
-      expect(result.data?.organization?.users?.totalCount).to.equal(3);
+      expect(result.data?.tenant?.id).to.equal("acme-corp");
+      expect(result.data?.tenant?.users?.totalCount).to.equal(3);
 
       expect(result.data?.users?.nodes).to.have.lengthOf(1);
       expect(result.data?.users?.totalCount).to.equal(3);

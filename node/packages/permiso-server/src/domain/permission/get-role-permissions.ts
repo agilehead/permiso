@@ -1,7 +1,7 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
-import type { RolePermissionWithOrgId } from "../../types.js";
+import type { RolePermissionWithTenantId } from "../../types.js";
 
 const logger = createLogger("permiso-server:permissions");
 
@@ -10,16 +10,16 @@ export async function getRolePermissions(
   roleId?: string,
   resourceId?: string,
   action?: string,
-  orgId?: string,
-): Promise<Result<RolePermissionWithOrgId[]>> {
+  tenantId?: string,
+): Promise<Result<RolePermissionWithTenantId[]>> {
   try {
-    // Use explicit orgId if provided, otherwise fall back to ctx.orgId
-    const effectiveOrgId = orgId || ctx.orgId;
+    // Use explicit tenantId if provided, otherwise fall back to ctx.tenantId
+    const effectiveTenantId = tenantId ?? ctx.tenantId;
 
     // If roleId is provided, get permissions for that role
-    if (roleId) {
+    if (roleId !== undefined && roleId !== "") {
       const result = await ctx.repos.permission.getRolePermissions(
-        effectiveOrgId,
+        effectiveTenantId,
         roleId,
       );
 
@@ -29,10 +29,10 @@ export async function getRolePermissions(
 
       // Apply additional filters if provided
       let permissions = result.data;
-      if (resourceId) {
+      if (resourceId !== undefined && resourceId !== "") {
         permissions = permissions.filter((p) => p.resourceId === resourceId);
       }
-      if (action) {
+      if (action !== undefined && action !== "") {
         permissions = permissions.filter((p) => p.action === action);
       }
 
@@ -40,9 +40,9 @@ export async function getRolePermissions(
     }
 
     // If resourceId is provided without roleId, get by resource
-    if (resourceId) {
+    if (resourceId !== undefined && resourceId !== "") {
       const result = await ctx.repos.permission.getPermissionsByResource(
-        effectiveOrgId,
+        effectiveTenantId,
         resourceId,
       );
 
@@ -51,7 +51,7 @@ export async function getRolePermissions(
       }
 
       let permissions = result.data.rolePermissions;
-      if (action) {
+      if (action !== undefined && action !== "") {
         permissions = permissions.filter((p) => p.action === action);
       }
 

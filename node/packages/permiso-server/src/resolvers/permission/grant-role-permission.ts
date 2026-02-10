@@ -1,5 +1,5 @@
 import { grantRolePermission } from "../../domain/permission/grant-role-permission.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const grantRolePermissionResolver = {
   Mutation: {
@@ -7,7 +7,7 @@ export const grantRolePermissionResolver = {
       _: unknown,
       args: {
         input: {
-          orgId: string;
+          tenantId: string;
           roleId: string;
           resourceId: string;
           action: string;

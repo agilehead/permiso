@@ -1,5 +1,5 @@
 import { graphqlRequest } from "../http-client.js";
-import { Result, PermisoConfig } from "../types.js";
+import type { Result, PermisoConfig } from "../types.js";
 import { buildHeaders } from "./utils.js";
 import type {
   User,
@@ -11,17 +11,17 @@ import type {
 } from "../generated/types.js";
 
 /**
- * Get a user by organization and user ID
+ * Get a user by tenant and user ID
  */
 export async function getUser(
   config: PermisoConfig,
   userId: string,
-): Promise<Result<User | null, Error>> {
+): Promise<Result<User | null>> {
   const query = `
     query GetUser($userId: ID!) {
       user(userId: $userId) {
         id
-        orgId
+        tenantId
         identityProvider
         identityProviderUserId
         properties {
@@ -60,7 +60,7 @@ export async function getUser(
 }
 
 /**
- * List users in an organization with optional filtering and pagination
+ * List users in a tenant with optional filtering and pagination
  */
 export async function listUsers(
   config: PermisoConfig,
@@ -79,8 +79,7 @@ export async function listUsers(
         startCursor?: string;
         endCursor?: string;
       };
-    },
-    Error
+    }
   >
 > {
   const query = `
@@ -88,7 +87,7 @@ export async function listUsers(
       users(filter: $filter, pagination: $pagination) {
         nodes {
           id
-          orgId
+          tenantId
           identityProvider
           identityProviderUserId
           properties {
@@ -152,12 +151,12 @@ export async function listUsers(
 export async function getUsersByIds(
   config: PermisoConfig,
   ids: string[],
-): Promise<Result<User[], Error>> {
+): Promise<Result<User[]>> {
   const query = `
     query GetUsersByIds($ids: [ID!]!) {
       usersByIds(ids: $ids) {
         id
-        orgId
+        tenantId
         identityProvider
         identityProviderUserId
         properties {
@@ -200,7 +199,7 @@ export async function getUsersByIdentity(
   config: PermisoConfig,
   identityProvider: string,
   identityProviderUserId: string,
-): Promise<Result<User[], Error>> {
+): Promise<Result<User[]>> {
   const query = `
     query GetUsersByIdentity($identityProvider: String!, $identityProviderUserId: String!) {
       usersByIdentity(
@@ -208,7 +207,7 @@ export async function getUsersByIdentity(
         identityProviderUserId: $identityProviderUserId
       ) {
         id
-        orgId
+        tenantId
         identityProvider
         identityProviderUserId
         properties {
@@ -250,12 +249,12 @@ export async function getUsersByIdentity(
 export async function createUser(
   config: PermisoConfig,
   input: CreateUserInput,
-): Promise<Result<User, Error>> {
+): Promise<Result<User>> {
   const mutation = `
     mutation CreateUser($input: CreateUserInput!) {
       createUser(input: $input) {
         id
-        orgId
+        tenantId
         identityProvider
         identityProviderUserId
         properties {
@@ -298,12 +297,12 @@ export async function updateUser(
   config: PermisoConfig,
   userId: string,
   input: UpdateUserInput,
-): Promise<Result<User, Error>> {
+): Promise<Result<User>> {
   const mutation = `
     mutation UpdateUser($userId: ID!, $input: UpdateUserInput!) {
       updateUser(userId: $userId, input: $input) {
         id
-        orgId
+        tenantId
         identityProvider
         identityProviderUserId
         properties {
@@ -345,7 +344,7 @@ export async function updateUser(
 export async function deleteUser(
   config: PermisoConfig,
   userId: string,
-): Promise<Result<boolean, Error>> {
+): Promise<Result<boolean>> {
   const mutation = `
     mutation DeleteUser($userId: ID!) {
       deleteUser(userId: $userId)
@@ -375,7 +374,7 @@ export async function getUserProperty(
   config: PermisoConfig,
   userId: string,
   propertyName: string,
-): Promise<Result<Property | null, Error>> {
+): Promise<Result<Property | null>> {
   const query = `
     query GetUserProperty($userId: ID!, $propertyName: String!) {
       userProperty(userId: $userId, propertyName: $propertyName) {
@@ -412,7 +411,7 @@ export async function setUserProperty(
   name: string,
   value: unknown,
   hidden?: boolean,
-): Promise<Result<Property, Error>> {
+): Promise<Result<Property>> {
   const mutation = `
     mutation SetUserProperty(
       $userId: ID!,
@@ -457,7 +456,7 @@ export async function deleteUserProperty(
   config: PermisoConfig,
   userId: string,
   name: string,
-): Promise<Result<boolean, Error>> {
+): Promise<Result<boolean>> {
   const mutation = `
     mutation DeleteUserProperty($userId: ID!, $name: String!) {
       deleteUserProperty(userId: $userId, name: $name)
@@ -487,12 +486,12 @@ export async function assignUserRole(
   config: PermisoConfig,
   userId: string,
   roleId: string,
-): Promise<Result<User, Error>> {
+): Promise<Result<User>> {
   const mutation = `
     mutation AssignUserRole($userId: ID!, $roleId: ID!) {
       assignUserRole(userId: $userId, roleId: $roleId) {
         id
-        orgId
+        tenantId
         identityProvider
         identityProviderUserId
         properties {
@@ -535,12 +534,12 @@ export async function unassignUserRole(
   config: PermisoConfig,
   userId: string,
   roleId: string,
-): Promise<Result<User, Error>> {
+): Promise<Result<User>> {
   const mutation = `
     mutation UnassignUserRole($userId: ID!, $roleId: ID!) {
       unassignUserRole(userId: $userId, roleId: $roleId) {
         id
-        orgId
+        tenantId
         identityProvider
         identityProviderUserId
         properties {

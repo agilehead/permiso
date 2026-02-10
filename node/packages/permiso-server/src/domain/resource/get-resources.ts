@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { Resource } from "../../repositories/interfaces/index.js";
 
@@ -15,7 +15,7 @@ export async function getResources(
 ): Promise<Result<Resource[]>> {
   try {
     const result = await ctx.repos.resource.list(
-      ctx.orgId,
+      ctx.tenantId,
       undefined,
       pagination
         ? {
@@ -42,7 +42,7 @@ export async function getResourcesByIdPrefix(
   idPrefix: string,
 ): Promise<Result<Resource[]>> {
   try {
-    const result = await ctx.repos.resource.listByIdPrefix(ctx.orgId, idPrefix);
+    const result = await ctx.repos.resource.listByIdPrefix(ctx.tenantId, idPrefix);
     return result;
   } catch (error) {
     logger.error("Failed to get resources by id prefix", { error, idPrefix });

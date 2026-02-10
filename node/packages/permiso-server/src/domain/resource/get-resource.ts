@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { Resource } from "../../repositories/interfaces/index.js";
 
@@ -8,11 +8,11 @@ const logger = createLogger("permiso-server:resources");
 export async function getResource(
   ctx: DataContext,
   resourceId: string,
-  orgId?: string,
+  tenantId?: string,
 ): Promise<Result<Resource | null>> {
   try {
-    const effectiveOrgId = orgId || ctx.orgId;
-    const result = await ctx.repos.resource.getById(effectiveOrgId, resourceId);
+    const effectiveTenantId = tenantId ?? ctx.tenantId;
+    const result = await ctx.repos.resource.getById(effectiveTenantId, resourceId);
 
     if (!result.success) {
       return { success: false, error: result.error };

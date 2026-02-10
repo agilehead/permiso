@@ -1,5 +1,5 @@
 import { getUsers } from "../../domain/user/get-users.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 // Re-export domain function
 export { getUsers };
@@ -9,7 +9,7 @@ export const getUsersResolver = {
     users: async (
       _: unknown,
       args: {
-        filter?: { properties?: Array<{ name: string; value: unknown }> };
+        filter?: { properties?: { name: string; value: unknown }[] };
         pagination?: {
           limit?: number;
           offset?: number;
@@ -32,7 +32,7 @@ export const getUsersResolver = {
         }
       }
 
-      const offset = args.pagination?.offset || 0;
+      const offset = args.pagination?.offset ?? 0;
       const hasNextPage =
         args.pagination?.limit !== undefined
           ? offset + args.pagination.limit < totalCount

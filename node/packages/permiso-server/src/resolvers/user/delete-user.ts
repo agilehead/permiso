@@ -1,5 +1,5 @@
 import { deleteUser } from "../../domain/user/delete-user.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 // Re-export domain function
 export { deleteUser };
@@ -11,7 +11,7 @@ export const deleteUserResolver = {
       args: { userId: string; safetyKey?: string },
       context: DataContext & { safetyKey?: string },
     ) => {
-      if (context.safetyKey && context.safetyKey !== args.safetyKey) {
+      if (context.safetyKey !== undefined && context.safetyKey !== args.safetyKey) {
         throw new Error("Invalid safety key");
       }
 

@@ -14,7 +14,7 @@ import type {
 // User entity (domain model, not GraphQL)
 export type User = {
   id: string;
-  orgId: string;
+  tenantId: string;
   identityProvider: string;
   identityProviderUserId: string;
   createdAt: number;
@@ -43,56 +43,56 @@ export type UpdateUserInput = {
 
 export type IUserRepository = {
   // CRUD operations
-  create(orgId: string, input: CreateUserInput): Promise<Result<User>>;
-  getById(orgId: string, userId: string): Promise<Result<User | null>>;
+  create(tenantId: string, input: CreateUserInput): Promise<Result<User>>;
+  getById(tenantId: string, userId: string): Promise<Result<User | null>>;
   getByIdentity(
-    orgId: string,
+    tenantId: string,
     identityProvider: string,
     identityProviderUserId: string,
   ): Promise<Result<User | null>>;
   list(
-    orgId: string,
+    tenantId: string,
     filter?: UserFilter,
     pagination?: PaginationInput,
   ): Promise<Result<Connection<User>>>;
-  listByOrg(
-    orgId: string,
+  listByTenant(
+    tenantId: string,
     pagination?: PaginationInput,
   ): Promise<Result<Connection<User>>>;
   update(
-    orgId: string,
+    tenantId: string,
     userId: string,
     input: UpdateUserInput,
   ): Promise<Result<User>>;
-  delete(orgId: string, userId: string): Promise<Result<boolean>>;
+  delete(tenantId: string, userId: string): Promise<Result<boolean>>;
 
   // Role assignments
   assignRole(
-    orgId: string,
+    tenantId: string,
     userId: string,
     roleId: string,
   ): Promise<Result<void>>;
   unassignRole(
-    orgId: string,
+    tenantId: string,
     userId: string,
     roleId: string,
   ): Promise<Result<void>>;
-  getRoleIds(orgId: string, userId: string): Promise<Result<string[]>>;
+  getRoleIds(tenantId: string, userId: string): Promise<Result<string[]>>;
 
   // Properties
-  getProperties(orgId: string, userId: string): Promise<Result<Property[]>>;
+  getProperties(tenantId: string, userId: string): Promise<Result<Property[]>>;
   getProperty(
-    orgId: string,
+    tenantId: string,
     userId: string,
     name: string,
   ): Promise<Result<Property | null>>;
   setProperty(
-    orgId: string,
+    tenantId: string,
     userId: string,
     property: PropertyInput,
   ): Promise<Result<Property>>;
   deleteProperty(
-    orgId: string,
+    tenantId: string,
     userId: string,
     name: string,
   ): Promise<Result<boolean>>;

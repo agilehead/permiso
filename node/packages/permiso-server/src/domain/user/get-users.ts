@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { UserWithProperties, Property } from "../../types.js";
 import type {
@@ -22,8 +22,8 @@ export async function getUsers(
   try {
     // Get users with optional identity provider filter
     const listResult = await ctx.repos.user.list(
-      ctx.orgId,
-      filters?.identityProvider
+      ctx.tenantId,
+      filters?.identityProvider !== undefined && filters.identityProvider !== ""
         ? { identityProvider: filters.identityProvider }
         : undefined,
       pagination
@@ -48,7 +48,10 @@ export async function getUsers(
     }
 
     // Apply identity provider user ID filter if provided
-    if (filters?.identityProviderUserId) {
+    if (
+      filters?.identityProviderUserId !== undefined &&
+      filters.identityProviderUserId !== ""
+    ) {
       users = users.filter(
         (user) =>
           user.identityProviderUserId === filters.identityProviderUserId,
@@ -59,8 +62,8 @@ export async function getUsers(
     const result = await Promise.all(
       users.map(async (user) => {
         const [propertiesResult, roleIdsResult] = await Promise.all([
-          ctx.repos.user.getProperties(ctx.orgId, user.id),
-          ctx.repos.user.getRoleIds(ctx.orgId, user.id),
+          ctx.repos.user.getProperties(ctx.tenantId, user.id),
+          ctx.repos.user.getRoleIds(ctx.tenantId, user.id),
         ]);
 
         const properties = propertiesResult.success
@@ -82,12 +85,12 @@ export async function getUsers(
         return {
           ...user,
           roleIds: roleIdsResult.success ? roleIdsResult.data : [],
-          properties: properties.reduce(
+          properties: properties.reduce<Record<string, unknown>>(
             (acc: Record<string, unknown>, prop: Property) => {
               acc[prop.name] = prop.value;
               return acc;
             },
-            {} as Record<string, unknown>,
+            {},
           ),
         };
       }),

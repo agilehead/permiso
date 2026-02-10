@@ -3,123 +3,50 @@
 # test-integration.sh – Run integration tests for Permiso
 #
 # Usage:
-#   ./scripts/test-integration.sh local        # Run tests with local SQLite
-#   ./scripts/test-integration.sh local --pg   # Run tests with local PostgreSQL
-#   ./scripts/test-integration.sh compose      # Run tests with Docker Compose SQLite
-#   ./scripts/test-integration.sh compose --pg # Run tests with Docker Compose PostgreSQL
+#   ./scripts/test-integration.sh local    # Run tests locally
+#   ./scripts/test-integration.sh compose  # Run tests with Docker Compose
 # -------------------------------------------------------------------
 set -euo pipefail
 
-# Colors for output
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-print_info() { echo -e "${BLUE}$1${NC}"; }
-print_success() { echo -e "${GREEN}✓ $1${NC}"; }
-print_error() { echo -e "${RED}✗ $1${NC}"; }
-print_warning() { echo -e "${YELLOW}! $1${NC}"; }
+print_info() { echo -e "\033[0;34m$1\033[0m"; }
+print_success() { echo -e "\033[0;32m✓ $1\033[0m"; }
+print_error() { echo -e "\033[0;31m✗ $1\033[0m"; }
 
-# Show usage
 usage() {
-    echo "Usage: $0 <mode> [--pg]"
+    echo "Usage: $0 <mode>"
     echo ""
     echo "Modes:"
     echo "  local    - Run tests with local database"
     echo "  compose  - Run tests with Docker Compose"
-    echo ""
-    echo "Options:"
-    echo "  --pg     - Use PostgreSQL instead of SQLite (default: SQLite)"
-    echo ""
-    echo "Examples:"
-    echo "  $0 local        # Local SQLite tests"
-    echo "  $0 local --pg   # Local PostgreSQL tests"
-    echo "  $0 compose      # Docker Compose SQLite tests"
-    echo "  $0 compose --pg # Docker Compose PostgreSQL tests"
     exit 1
 }
 
-# Parse arguments
 if [ $# -lt 1 ]; then
     usage
 fi
 
 MODE=$1
-USE_POSTGRES=false
 
-if [ $# -ge 2 ] && [ "$2" = "--pg" ]; then
-    USE_POSTGRES=true
-fi
-
-# Database type
-if [ "$USE_POSTGRES" = true ]; then
-    DB_TYPE="postgres"
-    print_info "Database: PostgreSQL"
-else
-    DB_TYPE="sqlite"
-    print_info "Database: SQLite"
-fi
-
-print_info "Mode: $MODE"
-echo ""
-
-# Setup environment based on mode and database type
-setup_env() {
-    if [ "$DB_TYPE" = "sqlite" ]; then
-        export PERMISO_DB_TYPE=sqlite
-        export PERMISO_SQLITE_PATH="./data/test-permiso.db"
-
-        # Create data directory if needed
-        mkdir -p ./data
-
-        # Remove existing test database
-        rm -f "$PERMISO_SQLITE_PATH"
-
-        print_info "Running SQLite migrations..."
-        npm run migrate:permiso:sqlite:latest
-    else
-        export PERMISO_DB_TYPE=postgres
-        export PERMISO_DB_HOST="${PERMISO_DB_HOST:-localhost}"
-        export PERMISO_DB_PORT="${PERMISO_DB_PORT:-5432}"
-        export PERMISO_DB_NAME="${PERMISO_DB_NAME:-permiso_test}"
-        export PERMISO_DB_USER="${PERMISO_DB_USER:-postgres}"
-        export PERMISO_DB_PASSWORD="${PERMISO_DB_PASSWORD:-postgres}"
-
-        print_info "Running PostgreSQL migrations..."
-        npm run migrate:permiso:latest
-    fi
-
-    export PERMISO_SERVER_HOST=localhost
-    export PERMISO_SERVER_PORT=5099
-}
-
-# Cleanup function
-cleanup() {
-    print_info "Cleaning up..."
-
-    if [ "$MODE" = "compose" ]; then
-        docker compose -f docker-compose.test.yml down -v 2>/dev/null || true
-    fi
-
-    if [ "$DB_TYPE" = "sqlite" ] && [ -f "./data/test-permiso.db" ]; then
-        rm -f "./data/test-permiso.db"
-    fi
-}
-
-trap cleanup EXIT
-
-# Run tests based on mode
 case "$MODE" in
     local)
         print_info "=== Running Local Integration Tests ==="
         echo ""
 
-        setup_env
+        # Stop any existing services
+        "$SCRIPT_DIR/stop-all.sh"
+
+        # Build if needed
+        if [ ! -d "$PROJECT_ROOT/node/packages/permiso-server/dist" ]; then
+            print_info "Building project..."
+            "$SCRIPT_DIR/build.sh" --install
+        fi
 
         # Run tests
         print_info "Running tests..."
+        cd "$PROJECT_ROOT"
         npm test
 
         print_success "Local tests completed!"
@@ -129,81 +56,66 @@ case "$MODE" in
         print_info "=== Running Docker Compose Integration Tests ==="
         echo ""
 
-        # Check if docker compose file exists
-        if [ ! -f "docker-compose.test.yml" ]; then
-            print_warning "docker-compose.test.yml not found, using default configuration"
+        # Stop any existing services
+        "$SCRIPT_DIR/stop-all.sh"
 
-            # Create a temporary docker-compose file
-            if [ "$DB_TYPE" = "sqlite" ]; then
-                cat > docker-compose.test.yml << 'EOF'
-services:
-  permiso:
-    build: .
-    ports:
-      - "5099:5001"
-    environment:
-      - PERMISO_DB_TYPE=sqlite
-      - PERMISO_SQLITE_PATH=/data/permiso.db
-      - PERMISO_SERVER_HOST=0.0.0.0
-      - PERMISO_SERVER_PORT=5001
-      - PERMISO_AUTO_MIGRATE=true
-    volumes:
-      - permiso-data:/data
-volumes:
-  permiso-data:
+        # Create temp dir for test
+        TIMESTAMP=$(date +%s)
+        TEST_DIR="$PROJECT_ROOT/.tests/compose-test-${TIMESTAMP}"
+        mkdir -p "$TEST_DIR"
+        HOST_DB_DIR="$TEST_DIR/data/permiso/db"
+        mkdir -p "$HOST_DB_DIR"
+        HOST_DB_PATH="$HOST_DB_DIR/permiso.db"
+
+        # Cleanup function
+        cleanup() {
+            print_info "Cleaning up..."
+            cd "$PROJECT_ROOT"
+            PERMISO_DATA_HOST_DIR="$HOST_DB_DIR" ENV_FILE="$TEST_DIR/.env.test" \
+                docker compose -f devenv/docker-compose.yml down 2>/dev/null || true
+            rm -rf "$TEST_DIR"
+        }
+        trap cleanup EXIT
+
+        # Generate .env.test
+        cat > "$TEST_DIR/.env.test" << EOF
+PERMISO_DATA_DIR=/app/data/permiso/db
+PERMISO_SERVER_HOST=0.0.0.0
+PERMISO_SERVER_PORT=5001
+PERMISO_API_KEY=test-api-key
+PERMISO_API_KEY_ENABLED=true
+LOG_LEVEL=info
 EOF
-            else
-                cat > docker-compose.test.yml << 'EOF'
-services:
-  postgres:
-    image: postgres:16
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=permiso_test
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
-  permiso:
-    build: .
-    ports:
-      - "5099:5001"
-    environment:
-      - PERMISO_DB_TYPE=postgres
-      - PERMISO_DB_HOST=postgres
-      - PERMISO_DB_PORT=5432
-      - PERMISO_DB_NAME=permiso_test
-      - PERMISO_DB_USER=postgres
-      - PERMISO_DB_PASSWORD=postgres
-      - PERMISO_SERVER_HOST=0.0.0.0
-      - PERMISO_SERVER_PORT=5001
-      - PERMISO_AUTO_MIGRATE=true
-    depends_on:
-      postgres:
-        condition: service_healthy
-EOF
-            fi
+        # Export for docker-compose
+        export PERMISO_DATA_HOST_DIR="$HOST_DB_DIR"
+        export ENV_FILE="$TEST_DIR/.env.test"
 
-            CLEANUP_COMPOSE_FILE=true
-        fi
+        cd "$PROJECT_ROOT"
 
-        # Start services
-        print_info "Starting Docker Compose services..."
-        docker compose -f docker-compose.test.yml up -d --build
+        # Run migrations
+        print_info "Running migrations..."
+        docker compose -f devenv/docker-compose.yml run --rm permiso-migrations
 
-        # Wait for service to be ready
-        print_info "Waiting for Permiso service to be ready..."
-        for i in {1..30}; do
-            if curl -s http://localhost:5099/health | grep -q "healthy"; then
-                print_success "Permiso service is ready"
+        # Start server
+        print_info "Starting server..."
+        docker compose -f devenv/docker-compose.yml up -d permiso
+
+        # Wait for health
+        print_info "Waiting for server to be ready..."
+        for i in $(seq 1 30); do
+            if curl -sf http://localhost:5001/health >/dev/null 2>&1; then
+                print_success "Server is ready"
                 break
             fi
-            if [ $i -eq 30 ]; then
-                print_error "Service failed to start"
-                docker compose -f docker-compose.test.yml logs
+            if [ "$i" -eq 30 ]; then
+                print_error "Server failed to start"
+                echo ""
+                print_info "Migration logs:"
+                docker compose -f devenv/docker-compose.yml logs permiso-migrations
+                echo ""
+                print_info "Server logs:"
+                docker compose -f devenv/docker-compose.yml logs permiso
                 exit 1
             fi
             echo -n "."
@@ -211,14 +123,9 @@ EOF
         done
         echo ""
 
-        # Run tests against the docker compose service
-        export PERMISO_TEST_URL="http://localhost:5099"
-        npm test
-
-        # Cleanup temporary compose file
-        if [ "${CLEANUP_COMPOSE_FILE:-false}" = true ]; then
-            rm -f docker-compose.test.yml
-        fi
+        # Run tests against the running server
+        print_info "Running tests..."
+        TEST_URL="http://localhost:5001" TEST_DB_PATH="$HOST_DB_PATH" npm test
 
         print_success "Docker Compose tests completed!"
         ;;

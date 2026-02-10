@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@codespin/permiso-logger": "file:../permiso-logger",
-    "pg-promise": "^11.15.0"
+    "better-sqlite3": "^11.8.1",
+    "knex": "^3.1.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^24.1.0",
     "typescript": "^5.9.2"
   },

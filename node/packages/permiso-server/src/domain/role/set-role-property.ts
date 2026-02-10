@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { Property } from "../../types.js";
 
@@ -10,10 +10,10 @@ export async function setRoleProperty(
   roleId: string,
   name: string,
   value: unknown,
-  hidden: boolean = false,
+  hidden = false,
 ): Promise<Result<Property>> {
   try {
-    const result = await ctx.repos.role.setProperty(ctx.orgId, roleId, {
+    const result = await ctx.repos.role.setProperty(ctx.tenantId, roleId, {
       name,
       value,
       hidden,

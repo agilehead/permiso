@@ -1,6 +1,6 @@
 import { updateUser } from "../../domain/user/update-user.js";
 import { getUser } from "./get-user.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 import type { UpdateUserInput } from "../../generated/graphql.js";
 
 // Re-export domain function

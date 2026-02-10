@@ -1,5 +1,5 @@
 import { createResource } from "../../domain/resource/create-resource.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 import type { CreateResourceInput } from "../../generated/graphql.js";
 
 export const createResourceResolver = {

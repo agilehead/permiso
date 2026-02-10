@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { UserWithProperties, Property } from "../../types.js";
 
@@ -11,29 +11,29 @@ export async function getUsersByIdentity(
   identityProviderUserId: string,
 ): Promise<Result<UserWithProperties[]>> {
   try {
-    // This operation needs to search across all organizations
-    // We use the user repository's getByIdentity method for each org
-    // For now, we need to list all orgs and search in each one
+    // This operation needs to search across all tenants
+    // We use the user repository's getByIdentity method for each tenant
+    // For now, we need to list all tenants and search in each one
 
-    // Get all organizations
-    const orgsResult = await ctx.repos.organization.list();
-    if (!orgsResult.success) {
-      return { success: false, error: orgsResult.error };
+    // Get all tenants
+    const tenantsResult = await ctx.repos.tenant.list();
+    if (!tenantsResult.success) {
+      return { success: false, error: tenantsResult.error };
     }
 
     const users: UserWithProperties[] = [];
 
-    for (const org of orgsResult.data.nodes) {
+    for (const tenant of tenantsResult.data.nodes) {
       const userResult = await ctx.repos.user.getByIdentity(
-        org.id,
+        tenant.id,
         identityProvider,
         identityProviderUserId,
       );
 
       if (userResult.success && userResult.data) {
         const [propertiesResult, roleIdsResult] = await Promise.all([
-          ctx.repos.user.getProperties(org.id, userResult.data.id),
-          ctx.repos.user.getRoleIds(org.id, userResult.data.id),
+          ctx.repos.user.getProperties(tenant.id, userResult.data.id),
+          ctx.repos.user.getRoleIds(tenant.id, userResult.data.id),
         ]);
 
         const properties = propertiesResult.success
@@ -43,12 +43,12 @@ export async function getUsersByIdentity(
         users.push({
           ...userResult.data,
           roleIds: roleIdsResult.success ? roleIdsResult.data : [],
-          properties: properties.reduce(
+          properties: properties.reduce<Record<string, unknown>>(
             (acc: Record<string, unknown>, prop: Property) => {
               acc[prop.name] = prop.value;
               return acc;
             },
-            {} as Record<string, unknown>,
+            {},
           ),
         });
       }

@@ -8,7 +8,7 @@ import type { Result, PaginationInput, Connection } from "./types.js";
 // Resource entity (domain model, not GraphQL)
 export type Resource = {
   id: string; // This is the resource path, e.g., "/india/data/legal"
-  orgId: string;
+  tenantId: string;
   name: string | null;
   description: string | null;
   createdAt: number;
@@ -35,23 +35,23 @@ export type UpdateResourceInput = {
 
 export type IResourceRepository = {
   // CRUD operations
-  create(orgId: string, input: CreateResourceInput): Promise<Result<Resource>>;
-  getById(orgId: string, resourceId: string): Promise<Result<Resource | null>>;
+  create(tenantId: string, input: CreateResourceInput): Promise<Result<Resource>>;
+  getById(tenantId: string, resourceId: string): Promise<Result<Resource | null>>;
   list(
-    orgId: string,
+    tenantId: string,
     filter?: ResourceFilter,
     pagination?: PaginationInput,
   ): Promise<Result<Connection<Resource>>>;
-  listByOrg(
-    orgId: string,
+  listByTenant(
+    tenantId: string,
     pagination?: PaginationInput,
   ): Promise<Result<Connection<Resource>>>;
-  listByIdPrefix(orgId: string, idPrefix: string): Promise<Result<Resource[]>>;
+  listByIdPrefix(tenantId: string, idPrefix: string): Promise<Result<Resource[]>>;
   update(
-    orgId: string,
+    tenantId: string,
     resourceId: string,
     input: UpdateResourceInput,
   ): Promise<Result<Resource>>;
-  delete(orgId: string, resourceId: string): Promise<Result<boolean>>;
-  deleteByIdPrefix(orgId: string, idPrefix: string): Promise<Result<number>>; // Returns count deleted
+  delete(tenantId: string, resourceId: string): Promise<Result<boolean>>;
+  deleteByIdPrefix(tenantId: string, idPrefix: string): Promise<Result<number>>; // Returns count deleted
 };

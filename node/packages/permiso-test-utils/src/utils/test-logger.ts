@@ -14,10 +14,10 @@ export type Logger = {
 const isVerbose = process.env.VERBOSE_TESTS === "true";
 
 export const testLogger: Logger = {
-  debug: isVerbose ? console.debug : () => {},
-  info: isVerbose ? console.info : () => {},
-  warn: isVerbose ? console.warn : () => {},
-  error: isVerbose ? console.error : () => {},
+  debug: isVerbose ? console.debug : () => { /* noop */ },
+  info: isVerbose ? console.info : () => { /* noop */ },
+  warn: isVerbose ? console.warn : () => { /* noop */ },
+  error: isVerbose ? console.error : () => { /* noop */ },
 };
 
 // Default logger that always logs (for backward compatibility)

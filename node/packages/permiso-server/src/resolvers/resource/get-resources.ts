@@ -2,14 +2,14 @@ import {
   getResources,
   getResourcesByIdPrefix,
 } from "../../domain/resource/get-resources.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const getResourcesResolver = {
   Query: {
     resources: async (
       _: unknown,
       args: {
-        orgId: string;
+        tenantId: string;
         filter?: { idPrefix?: string };
         pagination?: {
           limit?: number;
@@ -20,7 +20,7 @@ export const getResourcesResolver = {
       context: DataContext,
     ) => {
       let result;
-      if (args.filter?.idPrefix) {
+      if (args.filter?.idPrefix !== undefined && args.filter.idPrefix !== "") {
         result = await getResourcesByIdPrefix(context, args.filter.idPrefix);
       } else {
         result = await getResources(context, args.pagination);
@@ -32,14 +32,17 @@ export const getResourcesResolver = {
 
       // Get total count without pagination
       let totalCount = result.data.length;
-      if (args.pagination && !args.filter?.idPrefix) {
+      if (
+        args.pagination !== undefined &&
+        (args.filter?.idPrefix === undefined || args.filter.idPrefix === "")
+      ) {
         const countResult = await getResources(context);
         if (countResult.success) {
           totalCount = countResult.data.length;
         }
       }
 
-      const offset = args.pagination?.offset || 0;
+      const offset = args.pagination?.offset ?? 0;
       const hasNextPage =
         args.pagination?.limit !== undefined
           ? offset + args.pagination.limit < totalCount

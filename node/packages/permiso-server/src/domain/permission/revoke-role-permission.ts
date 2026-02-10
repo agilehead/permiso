@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 
 const logger = createLogger("permiso-server:permissions");
@@ -12,7 +12,7 @@ export async function revokeRolePermission(
 ): Promise<Result<boolean>> {
   try {
     const result = await ctx.repos.permission.revokeRolePermission(
-      ctx.orgId,
+      ctx.tenantId,
       roleId,
       resourceId,
       action,

@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 import type { Resource } from "../../repositories/interfaces/index.js";
 import type { CreateResourceInput } from "../../generated/graphql.js";
@@ -11,7 +11,7 @@ export async function createResource(
   input: CreateResourceInput,
 ): Promise<Result<Resource>> {
   try {
-    const result = await ctx.repos.resource.create(ctx.orgId, {
+    const result = await ctx.repos.resource.create(ctx.tenantId, {
       id: input.id,
       name: input.name ?? undefined,
       description: input.description ?? undefined,
@@ -25,7 +25,7 @@ export async function createResource(
       success: true,
       data: {
         id: result.data.id,
-        orgId: result.data.orgId,
+        tenantId: result.data.tenantId,
         name: result.data.name,
         description: result.data.description,
         createdAt: result.data.createdAt,

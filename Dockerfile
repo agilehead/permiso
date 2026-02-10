@@ -1,14 +1,23 @@
-# Build stage
-FROM node:24-alpine AS builder
+# Build stage - Use Ubuntu to match runtime for native modules
+FROM ubuntu:24.04 AS builder
 
-# Install build dependencies
-RUN apk add --no-cache bash
+# Install Node.js 24 and build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    python3 \
+    make \
+    g++ && \
+    curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY node/package*.json ./node/
 COPY node/packages/permiso-core/package*.json ./node/packages/permiso-core/
 COPY node/packages/permiso-logger/package*.json ./node/packages/permiso-logger/
 COPY node/packages/permiso-db/package*.json ./node/packages/permiso-db/
@@ -19,18 +28,19 @@ COPY scripts/ ./scripts/
 
 # Copy source code
 COPY tsconfig.base.json ./
-COPY knexfile.js ./
 COPY node ./node
 COPY database ./database
 
 # Install dependencies and build
-RUN chmod +x scripts/build.sh scripts/clean.sh scripts/format-all.sh && \
+RUN chmod +x scripts/build.sh scripts/clean.sh scripts/format-all.sh scripts/install-deps.sh && \
     ./scripts/build.sh --install
 
-# Runtime stage - Ubuntu minimal
-FROM ubuntu:24.04 AS runtime
+# Make dist files readable by any user (for rootless Docker)
+RUN chmod -R a+rX /app/node/packages/*/dist /app/database 2>/dev/null || true
 
-# Install Node.js 24 and minimal dependencies
+# Migrations stage - runs migrations and exits
+FROM ubuntu:24.04 AS migrations
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
@@ -40,32 +50,75 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN useradd -r -u 1001 -g root -s /bin/bash permiso && \
-    mkdir -p /home/permiso && \
-    chown -R permiso:root /home/permiso
+WORKDIR /app
+
+# Copy from builder - need knex, migrations, and database access
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/database/ ./database/
+COPY --from=builder /app/node/packages/permiso-db/dist ./node/packages/permiso-db/dist
+COPY --from=builder /app/node/packages/permiso-db/package*.json ./node/packages/permiso-db/
+COPY --from=builder /app/node/packages/permiso-logger/dist ./node/packages/permiso-logger/dist
+COPY --from=builder /app/node/packages/permiso-logger/package*.json ./node/packages/permiso-logger/
+
+# Create data directory
+RUN mkdir -p /app/data
+
+CMD ["./node_modules/.bin/knex", "migrate:latest", "--knexfile", "database/permiso/knexfile.js", "--env", "production"]
+
+# Development stage - hot reload with source mounts
+FROM builder AS development
 
 WORKDIR /app
 
-# Copy built application from builder stage
-COPY --from=builder --chown=permiso:root /app/node ./node
-COPY --from=builder --chown=permiso:root /app/database ./database
-COPY --from=builder --chown=permiso:root /app/package*.json ./
-COPY --from=builder --chown=permiso:root /app/node_modules ./node_modules
-COPY --from=builder --chown=permiso:root /app/knexfile.js ./
+EXPOSE 5001
+
+ENV NODE_ENV=development \
+    PERMISO_SERVER_HOST=0.0.0.0 \
+    PERMISO_SERVER_PORT=5001 \
+    LOG_LEVEL=debug
+
+CMD ["node", "--import", "tsx", "node/packages/permiso-server/src/bin/server.ts"]
+
+# Production stage
+FROM ubuntu:24.04 AS production
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates && \
+    curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy built application and dependencies from builder
+COPY --from=builder /app/node/packages/permiso-server/dist ./node/packages/permiso-server/dist
+COPY --from=builder /app/node/packages/permiso-server/package*.json ./node/packages/permiso-server/
+COPY --from=builder /app/node/packages/permiso-db/dist ./node/packages/permiso-db/dist
+COPY --from=builder /app/node/packages/permiso-db/package*.json ./node/packages/permiso-db/
+COPY --from=builder /app/node/packages/permiso-logger/dist ./node/packages/permiso-logger/dist
+COPY --from=builder /app/node/packages/permiso-logger/package*.json ./node/packages/permiso-logger/
+COPY --from=builder /app/node/packages/permiso-core/dist ./node/packages/permiso-core/dist
+COPY --from=builder /app/node/packages/permiso-core/package*.json ./node/packages/permiso-core/
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy start script and entrypoint
-COPY --chown=permiso:root scripts/start.sh scripts/docker-entrypoint.sh ./
-RUN chmod +x start.sh docker-entrypoint.sh
+COPY scripts/start.sh scripts/docker-entrypoint.sh ./scripts/
+RUN chmod +x scripts/start.sh scripts/docker-entrypoint.sh
 
-# Switch to non-root user
-USER permiso
+# Create data and log directories
+RUN mkdir -p /app/data /app/logs
 
-# Expose GraphQL server port
+# Expose server port
 EXPOSE 5001
 
 # Set default environment variables (non-sensitive only)
 ENV NODE_ENV=production \
+    PERMISO_SERVER_HOST=0.0.0.0 \
     PERMISO_SERVER_PORT=5001 \
     LOG_LEVEL=info
 
@@ -74,4 +127,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD node -e "require('http').get('http://localhost:' + (process.env.PERMISO_SERVER_PORT || 5001) + '/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
 
 # Use entrypoint for automatic setup
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["./scripts/docker-entrypoint.sh"]

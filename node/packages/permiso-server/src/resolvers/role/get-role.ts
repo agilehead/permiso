@@ -1,5 +1,5 @@
 import { getRole } from "../../domain/role/get-role.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 // Re-export domain function
 export { getRole };

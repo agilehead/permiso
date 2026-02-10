@@ -1,31 +1,31 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createOrgClient } from "../index.js";
+import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
 
 describe("Permissions", () => {
-  const getTestOrgClient = () => createOrgClient("test-org");
+  const getTestTenantClient = () => createTenantClient("test-org");
 
   beforeEach(async () => {
-    await testDb.truncateAllTables();
+    truncateAllTables(testDb);
 
-    // Create test organization using ROOT client
-    const orgMutation = gql`
-      mutation CreateOrganization($input: CreateOrganizationInput!) {
-        createOrganization(input: $input) {
+    // Create test tenant using ROOT client
+    const tenantMutation = gql`
+      mutation CreateTenant($input: CreateTenantInput!) {
+        createTenant(input: $input) {
           id
         }
       }
     `;
 
-    await rootClient.mutate(orgMutation, {
+    await rootClient.mutate(tenantMutation, {
       input: {
         id: "test-org",
-        name: "Test Organization",
+        name: "Test Tenant",
       },
     });
 
-    // Create organization-specific client
-    const testOrgClient = getTestOrgClient();
+    // Create tenant-specific client
+    const testTenantClient = getTestTenantClient();
 
     // Create test user
     const userMutation = gql`
@@ -36,7 +36,7 @@ describe("Permissions", () => {
       }
     `;
 
-    await testOrgClient.mutate(userMutation, {
+    await testTenantClient.mutate(userMutation, {
       input: {
         id: "test-user",
         identityProvider: "auth0",
@@ -53,7 +53,7 @@ describe("Permissions", () => {
       }
     `;
 
-    await testOrgClient.mutate(roleMutation, {
+    await testTenantClient.mutate(roleMutation, {
       input: {
         id: "admin",
         name: "Administrator",
@@ -69,7 +69,7 @@ describe("Permissions", () => {
       }
     `;
 
-    await testOrgClient.mutate(resourceMutation, {
+    await testTenantClient.mutate(resourceMutation, {
       input: {
         id: "/api/users/*",
         name: "User API",
@@ -79,7 +79,7 @@ describe("Permissions", () => {
 
   describe("grantUserPermission", () => {
     it("should grant permission directly to a user", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       const mutation = gql`
         mutation GrantUserPermission($input: GrantUserPermissionInput!) {
           grantUserPermission(input: $input) {
@@ -90,7 +90,7 @@ describe("Permissions", () => {
         }
       `;
 
-      const result = await testOrgClient.mutate(mutation, {
+      const result = await testTenantClient.mutate(mutation, {
         input: {
           userId: "test-user",
           resourceId: "/api/users/*",
@@ -105,7 +105,7 @@ describe("Permissions", () => {
     });
 
     it("should fail with non-existent user", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       const mutation = gql`
         mutation GrantUserPermission($input: GrantUserPermissionInput!) {
           grantUserPermission(input: $input) {
@@ -115,7 +115,7 @@ describe("Permissions", () => {
       `;
 
       try {
-        const result = await testOrgClient.mutate(mutation, {
+        const result = await testTenantClient.mutate(mutation, {
           input: {
             userId: "non-existent",
             resourceId: "/api/users/*",
@@ -139,7 +139,7 @@ describe("Permissions", () => {
       } catch (error: any) {
         // If an exception was thrown, check it
         const errorMessage =
-          error.graphQLErrors?.[0]?.message || error.message || "";
+          error.graphQLErrors?.[0]?.message ?? error.message ?? "";
         expect(errorMessage.toLowerCase()).to.satisfy(
           (msg: string) =>
             msg.includes("foreign key violation") ||
@@ -153,7 +153,7 @@ describe("Permissions", () => {
 
   describe("grantRolePermission", () => {
     it("should grant permission to a role", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       const mutation = gql`
         mutation GrantRolePermission($input: GrantRolePermissionInput!) {
           grantRolePermission(input: $input) {
@@ -164,7 +164,7 @@ describe("Permissions", () => {
         }
       `;
 
-      const result = await testOrgClient.mutate(mutation, {
+      const result = await testTenantClient.mutate(mutation, {
         input: {
           roleId: "admin",
           resourceId: "/api/users/*",
@@ -181,7 +181,7 @@ describe("Permissions", () => {
 
   describe("assignUserRole", () => {
     it("should assign a role to a user", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       const mutation = gql`
         mutation AssignUserRole($userId: ID!, $roleId: ID!) {
           assignUserRole(userId: $userId, roleId: $roleId) {
@@ -194,7 +194,7 @@ describe("Permissions", () => {
         }
       `;
 
-      const result = await testOrgClient.mutate(mutation, {
+      const result = await testTenantClient.mutate(mutation, {
         userId: "test-user",
         roleId: "admin",
       });
@@ -209,7 +209,7 @@ describe("Permissions", () => {
 
   describe("effectivePermissions", () => {
     it("should calculate effective permissions from direct user permissions", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       // Grant direct user permission
       const grantMutation = gql`
         mutation GrantUserPermission($input: GrantUserPermissionInput!) {
@@ -219,7 +219,7 @@ describe("Permissions", () => {
         }
       `;
 
-      await testOrgClient.mutate(grantMutation, {
+      await testTenantClient.mutate(grantMutation, {
         input: {
           userId: "test-user",
           resourceId: "/api/users/*",
@@ -238,7 +238,7 @@ describe("Permissions", () => {
         }
       `;
 
-      const result = await testOrgClient.query(query, {
+      const result = await testTenantClient.query(query, {
         userId: "test-user",
         resourceId: "/api/users/123",
       });
@@ -252,7 +252,7 @@ describe("Permissions", () => {
     });
 
     it("should calculate effective permissions from role assignments", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       // Grant permission to role
       const grantRoleMutation = gql`
         mutation GrantRolePermission($input: GrantRolePermissionInput!) {
@@ -262,7 +262,7 @@ describe("Permissions", () => {
         }
       `;
 
-      await testOrgClient.mutate(grantRoleMutation, {
+      await testTenantClient.mutate(grantRoleMutation, {
         input: {
           roleId: "admin",
           resourceId: "/api/users/*",
@@ -279,7 +279,7 @@ describe("Permissions", () => {
         }
       `;
 
-      await testOrgClient.mutate(assignMutation, {
+      await testTenantClient.mutate(assignMutation, {
         userId: "test-user",
         roleId: "admin",
       });
@@ -296,7 +296,7 @@ describe("Permissions", () => {
         }
       `;
 
-      const result = await testOrgClient.query(query, {
+      const result = await testTenantClient.query(query, {
         userId: "test-user",
         resourceId: "/api/users/123",
       });
@@ -311,7 +311,7 @@ describe("Permissions", () => {
     });
 
     it("should combine permissions from both user and role sources", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       // Grant direct user permission
       const grantUserMutation = gql`
         mutation GrantUserPermission($input: GrantUserPermissionInput!) {
@@ -321,7 +321,7 @@ describe("Permissions", () => {
         }
       `;
 
-      await testOrgClient.mutate(grantUserMutation, {
+      await testTenantClient.mutate(grantUserMutation, {
         input: {
           userId: "test-user",
           resourceId: "/api/users/*",
@@ -338,7 +338,7 @@ describe("Permissions", () => {
         }
       `;
 
-      await testOrgClient.mutate(grantRoleMutation, {
+      await testTenantClient.mutate(grantRoleMutation, {
         input: {
           roleId: "admin",
           resourceId: "/api/users/*",
@@ -355,7 +355,7 @@ describe("Permissions", () => {
         }
       `;
 
-      await testOrgClient.mutate(assignMutation, {
+      await testTenantClient.mutate(assignMutation, {
         userId: "test-user",
         roleId: "admin",
       });
@@ -371,7 +371,7 @@ describe("Permissions", () => {
         }
       `;
 
-      const result = await testOrgClient.query(query, {
+      const result = await testTenantClient.query(query, {
         userId: "test-user",
         resourceId: "/api/users/123",
       });
@@ -386,7 +386,7 @@ describe("Permissions", () => {
 
   describe("revokeUserPermission", () => {
     it("should revoke a user permission", async () => {
-      const testOrgClient = getTestOrgClient();
+      const testTenantClient = getTestTenantClient();
       // Grant permission first
       const grantMutation = gql`
         mutation GrantUserPermission($input: GrantUserPermissionInput!) {
@@ -396,7 +396,7 @@ describe("Permissions", () => {
         }
       `;
 
-      await testOrgClient.mutate(grantMutation, {
+      await testTenantClient.mutate(grantMutation, {
         input: {
           userId: "test-user",
           resourceId: "/api/users/*",
@@ -419,7 +419,7 @@ describe("Permissions", () => {
         }
       `;
 
-      const result = await testOrgClient.mutate(revokeMutation, {
+      const result = await testTenantClient.mutate(revokeMutation, {
         userId: "test-user",
         resourceId: "/api/users/*",
         action: "read",
@@ -436,7 +436,7 @@ describe("Permissions", () => {
         }
       `;
 
-      const queryResult = await testOrgClient.query(query, {
+      const queryResult = await testTenantClient.query(query, {
         userId: "test-user",
         resourceId: "/api/users/123",
       });

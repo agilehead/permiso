@@ -95,7 +95,7 @@ All database interactions use `*DbRow` types that exactly mirror the database sc
 // Database type (snake_case) - Example: Customer entity
 type CustomerDbRow = {
   id: string;
-  org_id: string;
+  tenant_id: string;
   email: string;
   created_at: Date;
   updated_at: Date | null;
@@ -105,7 +105,7 @@ type CustomerDbRow = {
 // Domain/API type (camelCase) - What your application uses
 type Customer = {
   id: string;
-  orgId: string;
+  tenantId: string;
   email: string;
   createdAt: Date;
   updatedAt: Date | null;
@@ -122,7 +122,7 @@ Always use mapper functions to convert between different representations. The ta
 export function mapCustomerFromDb(row: CustomerDbRow): Customer {
   return {
     id: row.id,
-    orgId: row.org_id,
+    tenantId: row.tenant_id,
     email: row.email,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -136,7 +136,7 @@ export function mapCustomerToDb(
 ): Partial<CustomerDbRow> {
   return {
     id: customer.id,
-    org_id: customer.orgId,
+    tenant_id: customer.tenantId,
     email: customer.email,
     created_at: customer.createdAt,
     updated_at: customer.updatedAt,
@@ -148,7 +148,7 @@ export function mapCustomerToDb(
 export function mapCustomerToGraphQL(customer: Customer): CustomerGraphQLType {
   return {
     id: customer.id,
-    organizationId: customer.orgId, // GraphQL might use different naming
+    tenantId: customer.tenantId, // GraphQL might use different naming
     emailAddress: customer.email,
     createdAt: customer.createdAt.toISOString(),
     updatedAt: customer.updatedAt?.toISOString() || null,
@@ -157,150 +157,29 @@ export function mapCustomerToGraphQL(customer: Customer): CustomerGraphQLType {
 }
 ```
 
-#### Type-safe Queries
+#### Type-safe Queries with Tinqer
 
-Always specify the type parameter for database queries and use named parameters:
-
-```typescript
-// ✅ Good - Type parameter specified with named parameters
-// Example: Finding a user by email
-const row = await db.one<UserDbRow>(
-  `SELECT * FROM "user" WHERE email = $(email)`,
-  { email: userEmail },
-);
-
-// ❌ Bad - Using positional parameters
-const row = await db.one<UserDbRow>(`SELECT * FROM "user" WHERE email = $1`, [
-  userEmail,
-]);
-
-// ❌ Bad - No type parameter
-const row = await db.one(`SELECT * FROM "user" WHERE email = $(email)`, {
-  email: userEmail,
-});
-```
-
-#### Named Parameters
-
-ALWAYS use named parameters for database queries. This improves readability, prevents SQL injection, and makes queries self-documenting:
+Use Tinqer for type-safe queries via the better-sqlite3 adapter:
 
 ```typescript
-// ✅ Good - Named parameters
-// Example: Creating a product record
-const product = await db.one<ProductDbRow>(
-  `INSERT INTO product (id, name, price, category_id, description) 
-   VALUES ($(id), $(name), $(price), $(categoryId), $(description)) 
-   RETURNING *`,
-  {
-    id: input.id,
-    name: input.name,
-    price: input.price,
-    categoryId: input.categoryId,
-    description: input.description,
-  },
+import { executeSelect, executeInsert } from "@tinqerjs/better-sqlite3-adapter";
+import { schema } from "./tinqer-schema.js";
+
+// ✅ Good - Type-safe select with Tinqer
+const rows = executeSelect(
+  db,
+  schema,
+  (q, p: { userId: string; tenantId: string }) =>
+    q.from("user").where((u) => u.id === p.userId && u.tenant_id === p.tenantId),
+  { userId, tenantId },
 );
 
-// ❌ Bad - Positional parameters
-const product = await db.one<ProductDbRow>(
-  `INSERT INTO product (id, name, price, category_id, description) 
-   VALUES ($1, $2, $3, $4, $5) 
-   RETURNING *`,
-  [input.id, input.name, input.price, input.categoryId, input.description],
+// ✅ Good - Raw SQL with named parameters for complex queries
+const stmt = db.prepare(
+  `SELECT * FROM resource WHERE tenant_id = @tenantId AND id LIKE @prefix`,
 );
+const rows = stmt.all({ tenantId, prefix: `${idPrefix}%` });
 ```
-
-#### SQL Helper Functions
-
-Use the `sql.insert()` and `sql.update()` helper functions from `@codespin/permiso-db` to construct SQL statements safely and consistently:
-
-```typescript
-import { sql } from "@codespin/permiso-db";
-
-// ✅ Good - Using sql.insert() helper
-const params = {
-  id: input.id,
-  org_id: input.orgId,
-  name: input.name,
-  created_at: new Date(),
-};
-const user = await db.one<UserDbRow>(
-  `${sql.insert("user", params)} RETURNING *`,
-  params,
-);
-
-// ✅ Good - Using sql.update() helper for partial updates
-const updateParams = {
-  name: input.name,
-  description: input.description,
-};
-const whereParams = {
-  id: resourceId,
-  org_id: orgId,
-};
-const query = `
-  ${sql.update("resource", updateParams)}
-  WHERE id = $(id) AND org_id = $(org_id)
-  RETURNING *
-`;
-const resource = await db.one<ResourceDbRow>(query, {
-  ...updateParams,
-  ...whereParams,
-});
-
-// The helpers automatically:
-// - Build column lists from object keys
-// - Create parameter placeholders using named syntax
-// - Ensure consistency across INSERT/UPDATE operations
-```
-
-#### Case Conversion in Database Operations
-
-When working with database operations, use `toSnakeCase` judiciously:
-
-```typescript
-// ✅ Good - Use toSnakeCase when converting incoming camelCase objects
-// Example: GraphQL input that needs conversion
-const updateParams: Record<string, any> = {};
-if (input.firstName !== undefined) {
-  updateParams.firstName = input.firstName;
-}
-if (input.lastName !== undefined) {
-  updateParams.lastName = input.lastName;
-}
-// Convert the camelCase object to snake_case for database
-const snakeParams = stringUtils.toSnakeCase(updateParams);
-
-// ✅ Good - Directly create snake_case objects when constructing from individual parameters
-// No need for toSnakeCase here since we're manually building the object
-const whereParams = {
-  user_id: userId,
-  org_id: orgId,
-};
-
-// ✅ Good - Direct snake_case construction for simple inserts
-const params = {
-  id: input.id,
-  org_id: input.orgId,
-  created_at: new Date(),
-  status: "active",
-};
-await db.one(`${sql.insert("user", params)} RETURNING *`, params);
-
-// ❌ Unnecessary - Avoid toSnakeCase when manually constructing objects
-const params = stringUtils.toSnakeCase({
-  userId: userId,
-  orgId: orgId,
-  status: "active",
-});
-// Instead, directly write: { user_id: userId, org_id: orgId, status: 'active' }
-```
-
-**Guidelines:**
-
-- Use `toSnakeCase` when you have an existing camelCase object (e.g., from GraphQL input, API requests)
-- Directly create snake_case objects when constructing from individual parameters
-- This is a pattern to apply judiciously based on context, not a rigid rule
-- Consider readability and maintainability when deciding which approach to use
 
 #### Domain Structure Organization
 

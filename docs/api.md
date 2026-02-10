@@ -8,7 +8,7 @@ http://localhost:5001/graphql
 
 ## Headers
 
-- `x-org-id`: Organization ID (required for org-scoped operations)
+- `x-tenant-id`: Tenant ID (required for tenant-scoped operations)
 - `Authorization`: Bearer token (if authentication enabled) - Format: `Bearer <token>`
 
 ## TypeScript Client
@@ -22,7 +22,7 @@ import { createUser, hasPermission } from "@codespin/permiso-client";
 
 const config = {
   endpoint: "http://localhost:5001",
-  orgId: "acme-corp",
+  tenantId: "acme-corp",
 };
 
 await createUser(config, {
@@ -34,12 +34,12 @@ await createUser(config, {
 
 ## Core Operations
 
-### Organizations
+### Tenants
 
 ```graphql
 # Create
 mutation {
-  createOrganization(input: { id: "acme-corp", name: "ACME Corporation" }) {
+  createTenant(input: { id: "acme-corp", name: "ACME Corporation" }) {
     id
     name
   }
@@ -47,11 +47,11 @@ mutation {
 
 # Query
 query {
-  organization(id: "acme-corp") {
+  tenant(id: "acme-corp") {
     id
     name
   }
-  organizations {
+  tenants {
     nodes {
       id
       name
@@ -74,7 +74,7 @@ mutation {
     }
   ) {
     id
-    orgId
+    tenantId
   }
 }
 

@@ -1,5 +1,5 @@
 import { createLogger } from "@codespin/permiso-logger";
-import { Result } from "@codespin/permiso-core";
+import type { Result } from "@codespin/permiso-core";
 import type { DataContext } from "../data-context.js";
 
 const logger = createLogger("permiso-server:permissions");
@@ -9,20 +9,20 @@ export async function getPermissionsByResource(
   resourceId: string,
 ): Promise<
   Result<
-    Array<{
+    {
       __typename: "UserPermission" | "RolePermission";
       userId?: string;
       roleId?: string;
       resourceId: string;
       action: string;
       createdAt: number;
-      orgId: string;
-    }>
+      tenantId: string;
+    }[]
   >
 > {
   try {
     const result = await ctx.repos.permission.getPermissionsByResource(
-      ctx.orgId,
+      ctx.tenantId,
       resourceId,
     );
 
@@ -38,7 +38,7 @@ export async function getPermissionsByResource(
         resourceId: p.resourceId,
         action: p.action,
         createdAt: p.createdAt,
-        orgId: p.orgId,
+        tenantId: p.tenantId,
       })),
       ...result.data.rolePermissions.map((p) => ({
         __typename: "RolePermission" as const,
@@ -46,7 +46,7 @@ export async function getPermissionsByResource(
         resourceId: p.resourceId,
         action: p.action,
         createdAt: p.createdAt,
-        orgId: p.orgId,
+        tenantId: p.tenantId,
       })),
     ];
 

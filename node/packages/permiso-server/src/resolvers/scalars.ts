@@ -1,4 +1,5 @@
-import { GraphQLScalarType, Kind, ValueNode, ObjectValueNode } from "graphql";
+import type { ValueNode } from "graphql";
+import { GraphQLScalarType, Kind } from "graphql";
 
 export const JSONScalar = new GraphQLScalarType({
   name: "JSON",
@@ -11,40 +12,18 @@ export const JSONScalar = new GraphQLScalarType({
     return value; // value from the client (variables)
   },
   parseLiteral(ast) {
-    switch (ast.kind) {
-      case Kind.STRING:
-        try {
-          return JSON.parse(ast.value);
-        } catch {
-          return ast.value; // Return as string if not valid JSON
-        }
-      case Kind.BOOLEAN:
-        return ast.value;
-      case Kind.INT:
-        return parseInt(ast.value, 10);
-      case Kind.FLOAT:
-        return parseFloat(ast.value);
-      case Kind.OBJECT: {
-        const value = Object.create(null);
-        ast.fields.forEach((field) => {
-          value[field.name.value] = parseLiteral(field.value);
-        });
-        return value;
-      }
-      case Kind.LIST:
-        return ast.values.map(parseLiteral);
-      case Kind.NULL:
-        return null;
-      default:
-        return undefined;
-    }
+    return parseLiteral(ast);
   },
 });
 
 function parseLiteral(ast: ValueNode): unknown {
   switch (ast.kind) {
     case Kind.STRING:
-      return ast.value;
+      try {
+        return JSON.parse(ast.value) as unknown;
+      } catch {
+        return ast.value;
+      }
     case Kind.BOOLEAN:
       return ast.value;
     case Kind.INT:
@@ -52,8 +31,8 @@ function parseLiteral(ast: ValueNode): unknown {
     case Kind.FLOAT:
       return parseFloat(ast.value);
     case Kind.OBJECT: {
-      const value = Object.create(null) as Record<string, unknown>;
-      (ast as ObjectValueNode).fields.forEach((field) => {
+      const value: Record<string, unknown> = {};
+      ast.fields.forEach((field) => {
         value[field.name.value] = parseLiteral(field.value);
       });
       return value;
@@ -62,7 +41,8 @@ function parseLiteral(ast: ValueNode): unknown {
       return ast.values.map(parseLiteral);
     case Kind.NULL:
       return null;
-    default:
+    case Kind.VARIABLE:
+    case Kind.ENUM:
       return undefined;
   }
 }

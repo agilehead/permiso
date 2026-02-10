@@ -14,7 +14,7 @@ import type {
 // Role entity (domain model, not GraphQL)
 export type Role = {
   id: string;
-  orgId: string;
+  tenantId: string;
   name: string;
   description: string | null;
   createdAt: number;
@@ -42,41 +42,41 @@ export type UpdateRoleInput = {
 
 export type IRoleRepository = {
   // CRUD operations
-  create(orgId: string, input: CreateRoleInput): Promise<Result<Role>>;
-  getById(orgId: string, roleId: string): Promise<Result<Role | null>>;
+  create(tenantId: string, input: CreateRoleInput): Promise<Result<Role>>;
+  getById(tenantId: string, roleId: string): Promise<Result<Role | null>>;
   list(
-    orgId: string,
+    tenantId: string,
     filter?: RoleFilter,
     pagination?: PaginationInput,
   ): Promise<Result<Connection<Role>>>;
-  listByOrg(
-    orgId: string,
+  listByTenant(
+    tenantId: string,
     pagination?: PaginationInput,
   ): Promise<Result<Connection<Role>>>;
   update(
-    orgId: string,
+    tenantId: string,
     roleId: string,
     input: UpdateRoleInput,
   ): Promise<Result<Role>>;
-  delete(orgId: string, roleId: string): Promise<Result<boolean>>;
+  delete(tenantId: string, roleId: string): Promise<Result<boolean>>;
 
   // User assignments
-  getUserIds(orgId: string, roleId: string): Promise<Result<string[]>>;
+  getUserIds(tenantId: string, roleId: string): Promise<Result<string[]>>;
 
   // Properties
-  getProperties(orgId: string, roleId: string): Promise<Result<Property[]>>;
+  getProperties(tenantId: string, roleId: string): Promise<Result<Property[]>>;
   getProperty(
-    orgId: string,
+    tenantId: string,
     roleId: string,
     name: string,
   ): Promise<Result<Property | null>>;
   setProperty(
-    orgId: string,
+    tenantId: string,
     roleId: string,
     property: PropertyInput,
   ): Promise<Result<Property>>;
   deleteProperty(
-    orgId: string,
+    tenantId: string,
     roleId: string,
     name: string,
   ): Promise<Result<boolean>>;

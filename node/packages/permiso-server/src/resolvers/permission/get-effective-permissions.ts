@@ -1,12 +1,12 @@
 import { getEffectivePermissions } from "../../domain/permission/get-effective-permissions.js";
-import { DataContext } from "../../domain/data-context.js";
+import type { DataContext } from "../../domain/data-context.js";
 
 export const getEffectivePermissionsResolver = {
   Query: {
     effectivePermissions: async (
       _: unknown,
       args: {
-        orgId: string;
+        tenantId: string;
         userId: string;
         resourcePath?: string;
         action?: string;
