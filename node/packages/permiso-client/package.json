@@ -1,21 +1,26 @@
 {
-  "name": "@codespin/permiso-client",
-  "version": "0.0.5",
+  "name": "@agilehead/permiso-client",
+  "version": "0.0.6",
   "description": "Client library for Permiso RBAC API",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "sideEffects": false,
-  "files": [
-    "dist"
-  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
   "scripts": {
     "build": "tsc",
-    "test:build": "tsc -p tsconfig.test.json --noEmit",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
     "test": "mocha --exit",
-    "test:grep": "mocha --exit --grep"
+    "test:build": "tsc -p tsconfig.test.json --noEmit",
+    "test:integration": "mocha --exit --spec src/tests/index.test.ts",
+    "test:grep": "mocha --exit --grep",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix"
   },
   "dependencies": {},
   "devDependencies": {
@@ -30,13 +35,7 @@
     "tsx": "^4.19.4",
     "typescript": "^5.7.3"
   },
-  "keywords": [
-    "rbac",
-    "permissions",
-    "access-control",
-    "client",
-    "api"
-  ],
-  "author": "Codespin",
+  "keywords": ["rbac", "permissions", "access-control", "client", "api"],
+  "author": "Agilehead",
   "license": "MIT"
 }
