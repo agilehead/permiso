@@ -1,37 +1,20 @@
-/**
- * Permiso Client - A TypeScript client for the Permiso RBAC API
- *
- * This package provides a complete client SDK for interacting with the Permiso
- * Role-Based Access Control system. It abstracts away the GraphQL layer and
- * provides simple function-based APIs for all operations.
- */
-
-// Export types
 export type {
   PermisoConfig,
   Logger,
   Result,
-  GraphQLError,
-  GraphQLResponse,
 } from "./types.js";
 export { success, failure } from "./types.js";
 
-// Export generated types
 export type {
-  // Core entities
   Tenant,
   User,
   Role,
   Resource,
   Property,
-
-  // Permission types
   Permission,
   UserPermission,
   RolePermission,
   EffectivePermission,
-
-  // Input types
   CreateTenantInput,
   UpdateTenantInput,
   CreateUserInput,
@@ -43,19 +26,13 @@ export type {
   PropertyInput,
   GrantUserPermissionInput,
   GrantRolePermissionInput,
-
-  // Filter types
   TenantFilter,
   UserFilter,
   RoleFilter,
   ResourceFilter,
   PropertyFilter,
-
-  // Pagination types
   PaginationInput,
   SortDirection,
-
-  // Connection types
   TenantConnection,
   UserConnection,
   RoleConnection,
@@ -63,67 +40,5 @@ export type {
   PageInfo,
 } from "./generated/types.js";
 
-// Export tenant APIs
-export {
-  getTenant,
-  listTenants,
-  getTenantsByIds,
-  createTenant,
-  updateTenant,
-  deleteTenant,
-  getTenantProperty,
-  setTenantProperty,
-  deleteTenantProperty,
-} from "./api/tenants.js";
-
-// Export user APIs
-export {
-  getUser,
-  listUsers,
-  getUsersByIds,
-  getUsersByIdentity,
-  createUser,
-  updateUser,
-  deleteUser,
-  getUserProperty,
-  setUserProperty,
-  deleteUserProperty,
-  assignUserRole,
-  unassignUserRole,
-} from "./api/users.js";
-
-// Export role APIs
-export {
-  getRole,
-  listRoles,
-  getRolesByIds,
-  createRole,
-  updateRole,
-  deleteRole,
-  getRoleProperty,
-  setRoleProperty,
-  deleteRoleProperty,
-} from "./api/roles.js";
-
-// Export resource APIs
-export {
-  getResource,
-  listResources,
-  getResourcesByIdPrefix,
-  createResource,
-  updateResource,
-  deleteResource,
-} from "./api/resources.js";
-
-// Export permission APIs
-export {
-  hasPermission,
-  getUserPermissions,
-  getRolePermissions,
-  getEffectivePermissions,
-  getEffectivePermissionsByPrefix,
-  grantUserPermission,
-  revokeUserPermission,
-  grantRolePermission,
-  revokeRolePermission,
-} from "./api/permissions.js";
+export type { PermisoClient, ConnectionPage } from "./client.js";
+export { createPermisoClient, createNoOpPermisoClient } from "./client.js";

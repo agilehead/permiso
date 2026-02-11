@@ -1,12 +1,5 @@
-import type {
-  Result,
-  GraphQLResponse,
-  GraphQLError,
-  Logger} from "./types.js";
-import {
-  success,
-  failure
-} from "./types.js";
+import type { Result, Logger } from "./types.js";
+import { success, failure } from "./types.js";
 
 export type GraphQLRequestOptions = {
   endpoint: string;
@@ -17,89 +10,71 @@ export type GraphQLRequestOptions = {
   logger?: Logger;
 };
 
-/**
- * Make a GraphQL request
- */
 export async function graphqlRequest<T>(
   options: GraphQLRequestOptions,
 ): Promise<Result<T>> {
+  const { endpoint, query, variables, headers, timeout, logger } = options;
+
   try {
-    options.logger?.debug("GraphQL request:", {
-      endpoint: options.endpoint,
-      query: (options.query.trim().split("\n")[0] ?? "") + "...",
-      variables: options.variables,
-    });
+    logger?.debug("Permiso GraphQL request:", { endpoint });
+
     const controller = new AbortController();
     const timeoutId =
-      options.timeout != null && options.timeout > 0
-        ? setTimeout(() => { controller.abort(); }, options.timeout)
-        : null;
+      timeout !== undefined
+        ? setTimeout(() => {
+            controller.abort();
+          }, timeout)
+        : undefined;
 
-    const response = await fetch(options.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-      body: JSON.stringify({
-        query: options.query,
-        variables: options.variables,
-      }),
-      signal: controller.signal,
-    });
-
-    if (timeoutId != null) {
-      clearTimeout(timeoutId);
-    }
-
-    const result = (await response.json()) as GraphQLResponse<T>;
-
-    options.logger?.debug("GraphQL response:", {
-      status: response.status,
-      hasData: result.data != null,
-      hasErrors: !!(result.errors && result.errors.length > 0),
-    });
-
-    // Check for GraphQL errors
-    if (result.errors != null && result.errors.length > 0) {
-      const error = result.errors[0];
-      if (error) {
-        const errorMessage = formatGraphQLError(error);
-        options.logger?.error("GraphQL error:", errorMessage, error);
-        return failure(new Error(errorMessage));
+    let response: Response;
+    try {
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...headers,
+        },
+        body: JSON.stringify({ query, variables }),
+        signal: controller.signal,
+      });
+    } finally {
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
       }
-      return failure(new Error("Unknown GraphQL error"));
     }
 
-    // Check for data
-    if (result.data == null) {
-      return failure(new Error("No data returned from GraphQL query"));
+    if (!response.ok) {
+      const message = `Permiso API error: ${String(response.status)}`;
+      logger?.error("Permiso request failed:", {
+        status: response.status,
+        error: message,
+      });
+      return failure(new Error(message));
     }
 
-    return success(result.data);
-  } catch (error) {
-    if (error instanceof Error) {
-      if (error.name === "AbortError") {
-        options.logger?.error("Request timeout");
-        return failure(new Error("Request timeout"));
-      }
-      options.logger?.error("Request error:", error.message);
-      return failure(error);
+    const body = (await response.json()) as {
+      data?: T;
+      errors?: Array<{ message: string }>;
+    };
+
+    if (body.errors && body.errors.length > 0) {
+      const message = body.errors.map((e) => e.message).join("; ");
+      logger?.error("Permiso GraphQL error:", { errors: body.errors });
+      return failure(new Error(message));
     }
-    options.logger?.error("Unknown error:", error);
-    return failure(new Error("Unknown error"));
+
+    if (body.data === undefined || body.data === null) {
+      return failure(new Error("No data in Permiso response"));
+    }
+
+    return success(body.data);
+  } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      logger?.error("Permiso request timed out:", { endpoint });
+      return failure(new Error("Request timed out"));
+    }
+    const message = err instanceof Error ? err.message : String(err);
+    logger?.error("Permiso request error:", { endpoint, error: message });
+    return failure(new Error(`Network error: ${message}`));
   }
-}
-
-/**
- * Format GraphQL error for display
- */
-function formatGraphQLError(error: GraphQLError): string {
-  let message = error.message;
-
-  if (error.extensions?.code != null && error.extensions.code !== "") {
-    message = `[${error.extensions.code}] ${message}`;
-  }
-
-  return message;
 }
