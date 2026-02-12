@@ -1,6 +1,11 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
+import {
+  testDb,
+  rootClient,
+  createTenantClient,
+  truncateAllTables,
+} from "../index.js";
 
 describe("Pagination and Filtering", () => {
   beforeEach(() => {
@@ -57,8 +62,7 @@ describe("Pagination and Filtering", () => {
         expect(result.data?.tenants?.nodes).to.have.lengthOf(3);
         expect(result.data?.tenants?.totalCount).to.equal(10);
         expect(result.data?.tenants?.pageInfo?.hasNextPage).to.be.true;
-        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be
-          .false;
+        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be.false;
       });
 
       it("should paginate tenants with offset and limit", async () => {
@@ -84,8 +88,7 @@ describe("Pagination and Filtering", () => {
         expect(result.data?.tenants?.nodes).to.have.lengthOf(3);
         expect(result.data?.tenants?.totalCount).to.equal(10);
         expect(result.data?.tenants?.pageInfo?.hasNextPage).to.be.true;
-        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be
-          .true;
+        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be.true;
 
         // Verify we got the right tenants
         const ids = result.data?.tenants?.nodes.map((o: any) => o.id);
@@ -113,8 +116,7 @@ describe("Pagination and Filtering", () => {
 
         expect(result.data?.tenants?.nodes).to.have.lengthOf(2); // Only 2 remaining
         expect(result.data?.tenants?.pageInfo?.hasNextPage).to.be.false;
-        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be
-          .true;
+        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be.true;
       });
     });
 
@@ -294,9 +296,7 @@ describe("Pagination and Filtering", () => {
         });
 
         expect(result.data?.tenants?.nodes).to.have.lengthOf(1);
-        expect(result.data?.tenants?.nodes[0].id).to.equal(
-          "org-free-small",
-        );
+        expect(result.data?.tenants?.nodes[0].id).to.equal("org-free-small");
       });
 
       it("should filter with boolean property values", async () => {
@@ -736,8 +736,7 @@ describe("Pagination and Filtering", () => {
         expect(result.data?.tenants?.nodes).to.have.lengthOf(2);
         expect(result.data?.tenants?.totalCount).to.equal(6); // Total premium orgs
         expect(result.data?.tenants?.pageInfo?.hasNextPage).to.be.true;
-        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be
-          .true;
+        expect(result.data?.tenants?.pageInfo?.hasPreviousPage).to.be.true;
 
         // Should get orgs 9 and 12 (skipping 3 and 6)
         const ids = result.data?.tenants?.nodes.map((o: any) => o.id);
@@ -758,7 +757,12 @@ describe("Pagination and Filtering", () => {
           }
         `;
 
-        const tenantIds = ["org-charlie", "org-alpha", "org-delta", "org-bravo"];
+        const tenantIds = [
+          "org-charlie",
+          "org-alpha",
+          "org-delta",
+          "org-bravo",
+        ];
         for (const tenantId of tenantIds) {
           await rootClient.mutate(mutation, {
             input: {

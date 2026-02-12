@@ -1,6 +1,11 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
+import {
+  testDb,
+  rootClient,
+  createTenantClient,
+  truncateAllTables,
+} from "../index.js";
 
 describe("Edge Cases and Error Scenarios", () => {
   beforeEach(() => {
@@ -190,7 +195,9 @@ describe("Edge Cases and Error Scenarios", () => {
         }
       `;
 
-      const result = await testTenantClient.query(query, { tenantId: "test-org" });
+      const result = await testTenantClient.query(query, {
+        tenantId: "test-org",
+      });
       const ids = result.data?.resources?.nodes.map((r: any) => r.id);
       expect(ids).to.include.members(specialResources);
     });
@@ -1533,9 +1540,7 @@ describe("Edge Cases and Error Scenarios", () => {
         },
       });
 
-      expect(result.data?.createTenant?.description).to.have.lengthOf(
-        10000,
-      );
+      expect(result.data?.createTenant?.description).to.have.lengthOf(10000);
     });
 
     it("should handle special characters in IDs", async () => {

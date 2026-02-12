@@ -10,7 +10,11 @@ export async function deleteUserProperty(
   name: string,
 ): Promise<Result<boolean>> {
   try {
-    const result = await ctx.repos.user.deleteProperty(ctx.tenantId, userId, name);
+    const result = await ctx.repos.user.deleteProperty(
+      ctx.tenantId,
+      userId,
+      name,
+    );
     return result;
   } catch (error) {
     logger.error("Failed to delete user property", {

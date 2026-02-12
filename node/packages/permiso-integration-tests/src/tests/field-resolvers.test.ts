@@ -1,6 +1,11 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
+import {
+  testDb,
+  rootClient,
+  createTenantClient,
+  truncateAllTables,
+} from "../index.js";
 
 describe("Field Resolvers and Nested Queries", () => {
   const getAcmeClient = () => createTenantClient("acme-corp");
@@ -272,9 +277,7 @@ describe("Field Resolvers and Nested Queries", () => {
       });
 
       expect(result.data?.tenant?.users?.nodes).to.have.lengthOf(1);
-      expect(result.data?.tenant?.users?.nodes[0].id).to.equal(
-        "john-doe",
-      );
+      expect(result.data?.tenant?.users?.nodes[0].id).to.equal("john-doe");
       expect(result.data?.tenant?.users?.totalCount).to.equal(1);
 
       // Test with pagination
@@ -283,12 +286,10 @@ describe("Field Resolvers and Nested Queries", () => {
         userPagination: { limit: 2, offset: 0 },
       });
 
-      expect(paginatedResult.data?.tenant?.users?.nodes).to.have.lengthOf(
-        2,
-      );
+      expect(paginatedResult.data?.tenant?.users?.nodes).to.have.lengthOf(2);
       expect(paginatedResult.data?.tenant?.users?.totalCount).to.equal(3);
-      expect(paginatedResult.data?.tenant?.users?.pageInfo?.hasNextPage)
-        .to.be.true;
+      expect(paginatedResult.data?.tenant?.users?.pageInfo?.hasNextPage).to.be
+        .true;
     });
 
     it("should resolve nested roles with filtering", async () => {
@@ -330,9 +331,7 @@ describe("Field Resolvers and Nested Queries", () => {
         id: "acme-corp",
       });
 
-      expect(allRolesResult.data?.tenant?.roles?.nodes).to.have.lengthOf(
-        3,
-      );
+      expect(allRolesResult.data?.tenant?.roles?.nodes).to.have.lengthOf(3);
       expect(allRolesResult.data?.tenant?.roles?.totalCount).to.equal(3);
     });
 
@@ -404,9 +403,7 @@ describe("Field Resolvers and Nested Queries", () => {
       });
 
       expect(result.data?.user?.tenant?.id).to.equal("acme-corp");
-      expect(result.data?.user?.tenant?.name).to.equal(
-        "ACME Corporation",
-      );
+      expect(result.data?.user?.tenant?.name).to.equal("ACME Corporation");
       expect(result.data?.user?.tenant?.properties).to.have.lengthOf(2);
     });
 
@@ -560,9 +557,7 @@ describe("Field Resolvers and Nested Queries", () => {
       });
 
       expect(result.data?.role?.tenant?.id).to.equal("acme-corp");
-      expect(result.data?.role?.tenant?.name).to.equal(
-        "ACME Corporation",
-      );
+      expect(result.data?.role?.tenant?.name).to.equal("ACME Corporation");
     });
 
     it("should resolve role users", async () => {
@@ -656,9 +651,7 @@ describe("Field Resolvers and Nested Queries", () => {
       });
 
       expect(result.data?.resource?.tenant?.id).to.equal("acme-corp");
-      expect(result.data?.resource?.tenant?.name).to.equal(
-        "ACME Corporation",
-      );
+      expect(result.data?.resource?.tenant?.name).to.equal("ACME Corporation");
     });
 
     it("should resolve resource permissions", async () => {
@@ -736,9 +729,7 @@ describe("Field Resolvers and Nested Queries", () => {
       });
 
       expect(result.data?.userPermissions).to.have.lengthOf(1);
-      expect(result.data?.userPermissions[0].tenant?.id).to.equal(
-        "acme-corp",
-      );
+      expect(result.data?.userPermissions[0].tenant?.id).to.equal("acme-corp");
       expect(result.data?.userPermissions[0].tenant?.name).to.equal(
         "ACME Corporation",
       );
@@ -776,7 +767,10 @@ describe("Field Resolvers and Nested Queries", () => {
   describe("Deep Nested Queries", () => {
     it("should handle deeply nested queries efficiently", async () => {
       const query = gql`
-        query DeepNestedQuery($tenantId: ID!, $userPagination: PaginationInput) {
+        query DeepNestedQuery(
+          $tenantId: ID!
+          $userPagination: PaginationInput
+        ) {
           tenant(id: $tenantId) {
             id
             name
@@ -857,9 +851,7 @@ describe("Field Resolvers and Nested Queries", () => {
       const role = user?.roles[0];
       expect(role?.permissions).to.have.length.at.least(1);
       expect(role?.permissions[0]?.resource?.id).to.be.a("string");
-      expect(role?.permissions[0]?.resource?.tenant?.id).to.equal(
-        "acme-corp",
-      );
+      expect(role?.permissions[0]?.resource?.tenant?.id).to.equal("acme-corp");
 
       // Check effective permissions
       expect(user?.effectivePermissions).to.have.length.at.least(1);

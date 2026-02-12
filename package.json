@@ -4,7 +4,9 @@
   "description": "A comprehensive Role-Based Access Control (RBAC) system with GraphQL",
   "type": "module",
   "private": true,
-  "workspaces": ["node/packages/*"],
+  "workspaces": [
+    "node/packages/*"
+  ],
   "scripts": {
     "build": "./scripts/build.sh",
     "clean": "./scripts/clean.sh",

@@ -62,18 +62,16 @@ export async function listRoles(
     pagination?: PaginationInput;
   },
 ): Promise<
-  Result<
-    {
-      nodes: Role[];
-      totalCount: number;
-      pageInfo: {
-        hasNextPage: boolean;
-        hasPreviousPage: boolean;
-        startCursor?: string;
-        endCursor?: string;
-      };
-    }
-  >
+  Result<{
+    nodes: Role[];
+    totalCount: number;
+    pageInfo: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      startCursor?: string;
+      endCursor?: string;
+    };
+  }>
 > {
   const query = `
     query ListRoles($filter: RoleFilter, $pagination: PaginationInput) {

@@ -126,7 +126,9 @@ export function createResourceRepository(
           (q, p: { resourceId: string; tenantId: string }) =>
             q
               .from("resource")
-              .where((r) => r.id === p.resourceId && r.tenant_id === p.tenantId),
+              .where(
+                (r) => r.id === p.resourceId && r.tenant_id === p.tenantId,
+              ),
           { resourceId, tenantId: inputTenantId },
         );
         return {
@@ -161,8 +163,10 @@ export function createResourceRepository(
         const totalCount = countResult.count;
 
         const sortDir = pagination?.sortDirection === "DESC" ? "DESC" : "ASC";
-        const hasFirst = pagination?.first !== undefined && pagination.first !== 0;
-        const hasOffset = pagination?.offset !== undefined && pagination.offset !== 0;
+        const hasFirst =
+          pagination?.first !== undefined && pagination.first !== 0;
+        const hasOffset =
+          pagination?.offset !== undefined && pagination.offset !== 0;
         const stmt = db.prepare(
           `SELECT * FROM resource WHERE tenant_id = @tenantId${
             hasIdPrefix ? " AND id LIKE @idPrefix" : ""
@@ -188,9 +192,7 @@ export function createResourceRepository(
             nodes: rows.map(mapResourceFromDb),
             totalCount,
             pageInfo: {
-              hasNextPage: hasFirst
-                ? rows.length === pagination.first
-                : false,
+              hasNextPage: hasFirst ? rows.length === pagination.first : false,
               hasPreviousPage: false,
               startCursor: rows[0]?.id ?? null,
               endCursor: rows[rows.length - 1]?.id ?? null,
@@ -276,7 +278,9 @@ export function createResourceRepository(
           (q, p: { resourceId: string; tenantId: string }) =>
             q
               .from("resource")
-              .where((r) => r.id === p.resourceId && r.tenant_id === p.tenantId),
+              .where(
+                (r) => r.id === p.resourceId && r.tenant_id === p.tenantId,
+              ),
           { resourceId, tenantId: inputTenantId },
         );
 
@@ -306,7 +310,8 @@ export function createResourceRepository(
                 .deleteFrom("user_permission")
                 .where(
                   (up) =>
-                    up.resource_id === p.resourceId && up.tenant_id === p.tenantId,
+                    up.resource_id === p.resourceId &&
+                    up.tenant_id === p.tenantId,
                 ),
             { resourceId, tenantId: inputTenantId },
           );
@@ -318,7 +323,8 @@ export function createResourceRepository(
                 .deleteFrom("role_permission")
                 .where(
                   (rp) =>
-                    rp.resource_id === p.resourceId && rp.tenant_id === p.tenantId,
+                    rp.resource_id === p.resourceId &&
+                    rp.tenant_id === p.tenantId,
                 ),
             { resourceId, tenantId: inputTenantId },
           );
@@ -328,7 +334,9 @@ export function createResourceRepository(
             (q, p: { resourceId: string; tenantId: string }) =>
               q
                 .deleteFrom("resource")
-                .where((r) => r.id === p.resourceId && r.tenant_id === p.tenantId),
+                .where(
+                  (r) => r.id === p.resourceId && r.tenant_id === p.tenantId,
+                ),
             { resourceId, tenantId: inputTenantId },
           );
         });
@@ -370,7 +378,8 @@ export function createResourceRepository(
                 q
                   .deleteFrom("user_permission")
                   .where(
-                    (up) => up.resource_id === p.resId && up.tenant_id === p.tenantId,
+                    (up) =>
+                      up.resource_id === p.resId && up.tenant_id === p.tenantId,
                   ),
               { resId: res.id, tenantId: inputTenantId },
             );
@@ -381,7 +390,8 @@ export function createResourceRepository(
                 q
                   .deleteFrom("role_permission")
                   .where(
-                    (rp) => rp.resource_id === p.resId && rp.tenant_id === p.tenantId,
+                    (rp) =>
+                      rp.resource_id === p.resId && rp.tenant_id === p.tenantId,
                   ),
               { resId: res.id, tenantId: inputTenantId },
             );

@@ -62,9 +62,7 @@ import {
   permissionFieldResolvers,
 } from "./permission/index.js";
 
-function mergeResolvers(
-  ...resolvers: unknown[]
-): Record<string, unknown> {
+function mergeResolvers(...resolvers: unknown[]): Record<string, unknown> {
   const merged: Record<string, unknown> = {
     Query: {},
     Mutation: {},

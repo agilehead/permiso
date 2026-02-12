@@ -3,7 +3,11 @@ import { mkdirSync } from "fs";
 import { dirname } from "path";
 
 export * as sql from "./sql.js";
-export { runMigrations, rollbackMigrations, getMigrationStatus } from "./migrations.js";
+export {
+  runMigrations,
+  rollbackMigrations,
+  getMigrationStatus,
+} from "./migrations.js";
 
 export type SQLiteDatabase = Database.Database;
 

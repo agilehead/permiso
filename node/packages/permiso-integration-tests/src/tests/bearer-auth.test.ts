@@ -14,7 +14,10 @@ describe("Bearer Authentication", () => {
     this.timeout(60000);
 
     // Start a server with API key authentication enabled
-    authServer = new TestServer({ port: 5003, dataDir: dirname(testDb.dbPath) });
+    authServer = new TestServer({
+      port: 5003,
+      dataDir: dirname(testDb.dbPath),
+    });
 
     // Set API key for test server
     process.env.PERMISO_API_KEY = "test-secret-key-123";
@@ -157,9 +160,7 @@ describe("Bearer Authentication", () => {
 
       expect(result.data?.createTenant).to.exist;
       expect(result.data?.createTenant.id).to.equal("org-auth-test");
-      expect(result.data?.createTenant.name).to.equal(
-        "Auth Test Tenant",
-      );
+      expect(result.data?.createTenant.name).to.equal("Auth Test Tenant");
     });
 
     it("should reject mutations without Bearer token", async () => {

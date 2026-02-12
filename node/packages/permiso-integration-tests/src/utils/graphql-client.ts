@@ -6,10 +6,10 @@ import {
 import type {
   ApolloQueryResult,
   FetchResult,
-
   DocumentNode,
-  NormalizedCacheObject} from "@apollo/client/core/index.js";
-import type { Logger} from "@codespin/permiso-test-utils";
+  NormalizedCacheObject,
+} from "@apollo/client/core/index.js";
+import type { Logger } from "@codespin/permiso-test-utils";
 import { testLogger } from "@codespin/permiso-test-utils";
 
 export class GraphQLClient {

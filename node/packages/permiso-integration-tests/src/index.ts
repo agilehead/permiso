@@ -15,7 +15,12 @@ import "./tests/edge-cases.test.js";
 import "./tests/field-resolvers.test.js";
 
 // Re-export for tests
-export { testDb, server, rootClient, createTenantClient } from "./test-setup.js";
+export {
+  testDb,
+  server,
+  rootClient,
+  createTenantClient,
+} from "./test-setup.js";
 export { truncateAllTables } from "@codespin/permiso-test-utils";
 
 // Setup global hooks for full test suite

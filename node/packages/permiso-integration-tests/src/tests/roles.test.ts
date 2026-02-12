@@ -1,6 +1,11 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
+import {
+  testDb,
+  rootClient,
+  createTenantClient,
+  truncateAllTables,
+} from "../index.js";
 
 describe("Roles", () => {
   const getTestTenantClient = () => createTenantClient("test-org");

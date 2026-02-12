@@ -195,7 +195,9 @@ export function createPermissionRepository(
           (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_permission")
-              .where((up) => up.user_id === p.userId && up.tenant_id === p.tenantId),
+              .where(
+                (up) => up.user_id === p.userId && up.tenant_id === p.tenantId,
+              ),
           { userId, tenantId: inputTenantId },
         );
         return { success: true, data: rows.map(mapUserPermissionFromDb) };
@@ -313,7 +315,9 @@ export function createPermissionRepository(
           (q, p: { roleId: string; tenantId: string }) =>
             q
               .from("role_permission")
-              .where((rp) => rp.role_id === p.roleId && rp.tenant_id === p.tenantId),
+              .where(
+                (rp) => rp.role_id === p.roleId && rp.tenant_id === p.tenantId,
+              ),
           { roleId, tenantId: inputTenantId },
         );
         return { success: true, data: rows.map(mapRolePermissionFromDb) };
@@ -342,7 +346,8 @@ export function createPermissionRepository(
               .from("user_permission")
               .where(
                 (up) =>
-                  up.resource_id === p.resourceId && up.tenant_id === p.tenantId,
+                  up.resource_id === p.resourceId &&
+                  up.tenant_id === p.tenantId,
               ),
           { resourceId, tenantId: inputTenantId },
         );
@@ -354,7 +359,8 @@ export function createPermissionRepository(
               .from("role_permission")
               .where(
                 (rp) =>
-                  rp.resource_id === p.resourceId && rp.tenant_id === p.tenantId,
+                  rp.resource_id === p.resourceId &&
+                  rp.tenant_id === p.tenantId,
               ),
           { resourceId, tenantId: inputTenantId },
         );
@@ -390,7 +396,9 @@ export function createPermissionRepository(
           (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_role")
-              .where((ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId),
+              .where(
+                (ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId,
+              ),
           { userId, tenantId: inputTenantId },
         );
         const roleIds = userRoles.map((r) => r.role_id);
@@ -404,7 +412,9 @@ export function createPermissionRepository(
           (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_permission")
-              .where((up) => up.user_id === p.userId && up.tenant_id === p.tenantId),
+              .where(
+                (up) => up.user_id === p.userId && up.tenant_id === p.tenantId,
+              ),
           { userId, tenantId: inputTenantId },
         );
 
@@ -417,7 +427,11 @@ export function createPermissionRepository(
           ) {
             continue;
           }
-          if (action !== undefined && perm.action !== action && perm.action !== "*") {
+          if (
+            action !== undefined &&
+            perm.action !== action &&
+            perm.action !== "*"
+          ) {
             continue;
           }
 
@@ -439,7 +453,8 @@ export function createPermissionRepository(
               q
                 .from("role_permission")
                 .where(
-                  (rp) => rp.role_id === p.roleId && rp.tenant_id === p.tenantId,
+                  (rp) =>
+                    rp.role_id === p.roleId && rp.tenant_id === p.tenantId,
                 ),
             { roleId, tenantId: inputTenantId },
           );
@@ -453,7 +468,11 @@ export function createPermissionRepository(
             ) {
               continue;
             }
-            if (action !== undefined && perm.action !== action && perm.action !== "*") {
+            if (
+              action !== undefined &&
+              perm.action !== action &&
+              perm.action !== "*"
+            ) {
               continue;
             }
 
@@ -489,7 +508,9 @@ export function createPermissionRepository(
           (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_permission")
-              .where((up) => up.user_id === p.userId && up.tenant_id === p.tenantId),
+              .where(
+                (up) => up.user_id === p.userId && up.tenant_id === p.tenantId,
+              ),
           { userId, tenantId: inputTenantId },
         );
 
@@ -510,7 +531,9 @@ export function createPermissionRepository(
           (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_role")
-              .where((ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId),
+              .where(
+                (ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId,
+              ),
           { userId, tenantId: inputTenantId },
         );
         const roleIds = userRoles.map((r) => r.role_id);
@@ -524,7 +547,8 @@ export function createPermissionRepository(
               q
                 .from("role_permission")
                 .where(
-                  (rp) => rp.role_id === p.roleId && rp.tenant_id === p.tenantId,
+                  (rp) =>
+                    rp.role_id === p.roleId && rp.tenant_id === p.tenantId,
                 ),
             { roleId, tenantId: inputTenantId },
           );
@@ -566,7 +590,9 @@ export function createPermissionRepository(
           (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_role")
-              .where((ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId),
+              .where(
+                (ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId,
+              ),
           { userId, tenantId: inputTenantId },
         );
         const roleIds = userRoles.map((r) => r.role_id);

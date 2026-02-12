@@ -68,7 +68,6 @@ export function toSnakeCase<T extends Record<string, unknown>>(
     return obj as unknown as SnakeCaseKeys<T>;
   }
 
-
   const result: Record<string, unknown> = {};
 
   for (const key in obj) {

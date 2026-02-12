@@ -150,7 +150,9 @@ export function createRoleRepository(
           db,
           schema,
           (q, p: { id: string; tenant_id: string }) =>
-            q.from("role").where((r) => r.id === p.id && r.tenant_id === p.tenant_id),
+            q
+              .from("role")
+              .where((r) => r.id === p.id && r.tenant_id === p.tenant_id),
           { id: input.id, tenant_id: inputTenantId },
         );
 
@@ -183,7 +185,10 @@ export function createRoleRepository(
               .where((r) => r.id === p.roleId && r.tenant_id === p.tenantId),
           { roleId, tenantId: inputTenantId },
         );
-        return { success: true, data: rows.length > 0 ? mapRoleFromDb(rows[0]) : null };
+        return {
+          success: true,
+          data: rows.length > 0 ? mapRoleFromDb(rows[0]) : null,
+        };
       } catch (error) {
         logger.error("Failed to get role", { error, roleId });
         return { success: false, error: error as Error };
@@ -212,8 +217,10 @@ export function createRoleRepository(
         const totalCount = countResult.count;
 
         const sortDir = pagination?.sortDirection === "DESC" ? "DESC" : "ASC";
-        const hasFirst = pagination?.first !== undefined && pagination.first !== 0;
-        const hasOffset = pagination?.offset !== undefined && pagination.offset !== 0;
+        const hasFirst =
+          pagination?.first !== undefined && pagination.first !== 0;
+        const hasOffset =
+          pagination?.offset !== undefined && pagination.offset !== 0;
         const stmt = db.prepare(
           `SELECT * FROM role WHERE tenant_id = @tenantId${
             hasName ? " AND name LIKE @name" : ""
@@ -239,9 +246,7 @@ export function createRoleRepository(
             nodes: rows.map(mapRoleFromDb),
             totalCount,
             pageInfo: {
-              hasNextPage: hasFirst
-                ? rows.length === pagination.first
-                : false,
+              hasNextPage: hasFirst ? rows.length === pagination.first : false,
               hasPreviousPage: false,
               startCursor: rows[0]?.id ?? null,
               endCursor: rows[rows.length - 1]?.id ?? null,
@@ -315,7 +320,10 @@ export function createRoleRepository(
     },
 
     // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
-    async delete(inputTenantId: string, roleId: string): Promise<Result<boolean>> {
+    async delete(
+      inputTenantId: string,
+      roleId: string,
+    ): Promise<Result<boolean>> {
       try {
         const deleteAll = db.transaction(() => {
           executeDelete(
@@ -325,7 +333,8 @@ export function createRoleRepository(
               q
                 .deleteFrom("role_property")
                 .where(
-                  (rp) => rp.parent_id === p.roleId && rp.tenant_id === p.tenantId,
+                  (rp) =>
+                    rp.parent_id === p.roleId && rp.tenant_id === p.tenantId,
                 ),
             { roleId, tenantId: inputTenantId },
           );
@@ -336,7 +345,8 @@ export function createRoleRepository(
               q
                 .deleteFrom("role_permission")
                 .where(
-                  (rp) => rp.role_id === p.roleId && rp.tenant_id === p.tenantId,
+                  (rp) =>
+                    rp.role_id === p.roleId && rp.tenant_id === p.tenantId,
                 ),
             { roleId, tenantId: inputTenantId },
           );
@@ -347,7 +357,8 @@ export function createRoleRepository(
               q
                 .deleteFrom("user_role")
                 .where(
-                  (ur) => ur.role_id === p.roleId && ur.tenant_id === p.tenantId,
+                  (ur) =>
+                    ur.role_id === p.roleId && ur.tenant_id === p.tenantId,
                 ),
             { roleId, tenantId: inputTenantId },
           );
@@ -382,7 +393,9 @@ export function createRoleRepository(
           (q, p: { roleId: string; tenantId: string }) =>
             q
               .from("user_role")
-              .where((ur) => ur.role_id === p.roleId && ur.tenant_id === p.tenantId),
+              .where(
+                (ur) => ur.role_id === p.roleId && ur.tenant_id === p.tenantId,
+              ),
           { roleId, tenantId: inputTenantId },
         );
         return { success: true, data: rows.map((r) => r.user_id) };
@@ -405,7 +418,8 @@ export function createRoleRepository(
             q
               .from("role_property")
               .where(
-                (rp) => rp.parent_id === p.roleId && rp.tenant_id === p.tenantId,
+                (rp) =>
+                  rp.parent_id === p.roleId && rp.tenant_id === p.tenantId,
               ),
           { roleId, tenantId: inputTenantId },
         );
