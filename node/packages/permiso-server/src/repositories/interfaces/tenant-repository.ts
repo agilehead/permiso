@@ -50,10 +50,7 @@ export type ITenantRepository = {
     filter?: TenantFilter,
     pagination?: PaginationInput,
   ): Promise<Result<Connection<Tenant>>>;
-  update(
-    tenantId: string,
-    input: UpdateTenantInput,
-  ): Promise<Result<Tenant>>;
+  update(tenantId: string, input: UpdateTenantInput): Promise<Result<Tenant>>;
   delete(tenantId: string): Promise<Result<boolean>>;
 
   // Properties

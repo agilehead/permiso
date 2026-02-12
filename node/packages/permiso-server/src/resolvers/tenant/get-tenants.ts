@@ -15,11 +15,7 @@ export const getTenantsResolver = {
       },
       context: DataContext,
     ) => {
-      const result = await getTenants(
-        context,
-        args.filter,
-        args.pagination,
-      );
+      const result = await getTenants(context, args.filter, args.pagination);
       if (!result.success) {
         throw result.error;
       }

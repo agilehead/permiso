@@ -69,18 +69,16 @@ export async function listUsers(
     pagination?: PaginationInput;
   },
 ): Promise<
-  Result<
-    {
-      nodes: User[];
-      totalCount: number;
-      pageInfo: {
-        hasNextPage: boolean;
-        hasPreviousPage: boolean;
-        startCursor?: string;
-        endCursor?: string;
-      };
-    }
-  >
+  Result<{
+    nodes: User[];
+    totalCount: number;
+    pageInfo: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      startCursor?: string;
+      endCursor?: string;
+    };
+  }>
 > {
   const query = `
     query ListUsers($filter: UserFilter, $pagination: PaginationInput) {

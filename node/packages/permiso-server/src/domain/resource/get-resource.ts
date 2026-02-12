@@ -12,7 +12,10 @@ export async function getResource(
 ): Promise<Result<Resource | null>> {
   try {
     const effectiveTenantId = tenantId ?? ctx.tenantId;
-    const result = await ctx.repos.resource.getById(effectiveTenantId, resourceId);
+    const result = await ctx.repos.resource.getById(
+      effectiveTenantId,
+      resourceId,
+    );
 
     if (!result.success) {
       return { success: false, error: result.error };

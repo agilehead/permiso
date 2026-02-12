@@ -60,14 +60,9 @@ describe("PermisoClient (factory pattern)", () => {
         }
 
         expect(fetchCalls).to.have.length(1);
-        expect(fetchCalls[0]!.url).to.equal(
-          "http://localhost:5003/graphql",
-        );
+        expect(fetchCalls[0]!.url).to.equal("http://localhost:5003/graphql");
 
-        const headers = fetchCalls[0]!.init.headers as Record<
-          string,
-          string
-        >;
+        const headers = fetchCalls[0]!.init.headers as Record<string, string>;
         expect(headers["x-tenant-id"]).to.equal("test-tenant");
         expect(headers.authorization).to.equal("Bearer test-key");
       });
@@ -294,7 +289,11 @@ describe("PermisoClient (factory pattern)", () => {
           resourceId: "res-1",
           action: "write",
           createdAt: 1000,
-          user: { id: "u-1", identityProvider: "g", identityProviderUserId: "g1" },
+          user: {
+            id: "u-1",
+            identityProvider: "g",
+            identityProviderUserId: "g1",
+          },
           resource: { id: "res-1", name: "Doc", description: null },
         };
         fetchResponse = {
@@ -392,10 +391,7 @@ describe("PermisoClient (factory pattern)", () => {
         const client = createPermisoClient(noAuthConfig);
         await client.getTenant("t-1");
 
-        const headers = fetchCalls[0]!.init.headers as Record<
-          string,
-          string
-        >;
+        const headers = fetchCalls[0]!.init.headers as Record<string, string>;
         expect(headers["x-tenant-id"]).to.be.undefined;
         expect(headers.authorization).to.be.undefined;
       });

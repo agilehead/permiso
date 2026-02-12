@@ -10,7 +10,11 @@ export async function unassignUserRole(
   roleId: string,
 ): Promise<Result<boolean>> {
   try {
-    const result = await ctx.repos.user.unassignRole(ctx.tenantId, userId, roleId);
+    const result = await ctx.repos.user.unassignRole(
+      ctx.tenantId,
+      userId,
+      roleId,
+    );
     if (!result.success) {
       return { success: false, error: result.error };
     }

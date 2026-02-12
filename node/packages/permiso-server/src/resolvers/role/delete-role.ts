@@ -11,7 +11,10 @@ export const deleteRoleResolver = {
       args: { roleId: string; safetyKey?: string },
       context: DataContext & { safetyKey?: string },
     ) => {
-      if (context.safetyKey !== undefined && context.safetyKey !== args.safetyKey) {
+      if (
+        context.safetyKey !== undefined &&
+        context.safetyKey !== args.safetyKey
+      ) {
         throw new Error("Invalid safety key");
       }
 

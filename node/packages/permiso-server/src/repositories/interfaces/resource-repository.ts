@@ -35,8 +35,14 @@ export type UpdateResourceInput = {
 
 export type IResourceRepository = {
   // CRUD operations
-  create(tenantId: string, input: CreateResourceInput): Promise<Result<Resource>>;
-  getById(tenantId: string, resourceId: string): Promise<Result<Resource | null>>;
+  create(
+    tenantId: string,
+    input: CreateResourceInput,
+  ): Promise<Result<Resource>>;
+  getById(
+    tenantId: string,
+    resourceId: string,
+  ): Promise<Result<Resource | null>>;
   list(
     tenantId: string,
     filter?: ResourceFilter,
@@ -46,7 +52,10 @@ export type IResourceRepository = {
     tenantId: string,
     pagination?: PaginationInput,
   ): Promise<Result<Connection<Resource>>>;
-  listByIdPrefix(tenantId: string, idPrefix: string): Promise<Result<Resource[]>>;
+  listByIdPrefix(
+    tenantId: string,
+    idPrefix: string,
+  ): Promise<Result<Resource[]>>;
   update(
     tenantId: string,
     resourceId: string,

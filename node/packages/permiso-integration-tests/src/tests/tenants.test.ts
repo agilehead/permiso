@@ -46,7 +46,9 @@ describe("Tenants", () => {
         hidden: false,
       });
 
-      const apiKeyProp = tenant?.properties.find((p: any) => p.name === "apiKey");
+      const apiKeyProp = tenant?.properties.find(
+        (p: any) => p.name === "apiKey",
+      );
       expect(apiKeyProp).to.deep.include({
         name: "apiKey",
         value: "secret123",
@@ -97,9 +99,7 @@ describe("Tenants", () => {
         }
 
         // If we get here, the duplicate was created when it shouldn't have been
-        expect.fail(
-          "Should have thrown an error for duplicate tenant ID",
-        );
+        expect.fail("Should have thrown an error for duplicate tenant ID");
       } catch (error: any) {
         // If this is our expect.fail error, re-throw it
         if (
@@ -254,10 +254,7 @@ describe("Tenants", () => {
 
       // Update tenant
       const updateMutation = gql`
-        mutation UpdateTenant(
-          $id: ID!
-          $input: UpdateTenantInput!
-        ) {
+        mutation UpdateTenant($id: ID!, $input: UpdateTenantInput!) {
           updateTenant(id: $id, input: $input) {
             id
             name

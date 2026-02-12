@@ -58,14 +58,10 @@ function mapPropertyFromDb(row: {
   };
 }
 
-export function createTenantRepository(
-  db: Database,
-): ITenantRepository {
+export function createTenantRepository(db: Database): ITenantRepository {
   return {
     // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
-    async create(
-      input: CreateTenantInput,
-    ): Promise<Result<Tenant>> {
+    async create(input: CreateTenantInput): Promise<Result<Tenant>> {
       try {
         const now = Date.now();
 
@@ -199,8 +195,10 @@ export function createTenantRepository(
 
         // Main query - use raw SQL for LIKE, ORDER BY, LIMIT, OFFSET
         const sortDir = pagination?.sortDirection === "DESC" ? "DESC" : "ASC";
-        const hasFirst = pagination?.first !== undefined && pagination.first !== 0;
-        const hasOffset = pagination?.offset !== undefined && pagination.offset !== 0;
+        const hasFirst =
+          pagination?.first !== undefined && pagination.first !== 0;
+        const hasOffset =
+          pagination?.offset !== undefined && pagination.offset !== 0;
         const stmt = db.prepare(
           `SELECT * FROM tenant${
             hasName ? " WHERE name LIKE @name" : ""
@@ -224,9 +222,7 @@ export function createTenantRepository(
             nodes: rows.map(mapTenantFromDb),
             totalCount,
             pageInfo: {
-              hasNextPage: hasFirst
-                ? rows.length === pagination.first
-                : false,
+              hasNextPage: hasFirst ? rows.length === pagination.first : false,
               hasPreviousPage: false,
               startCursor: rows[0]?.id ?? null,
               endCursor: rows[rows.length - 1]?.id ?? null,
@@ -339,7 +335,9 @@ export function createTenantRepository(
             db,
             schema,
             (q, p: { tenantId: string }) =>
-              q.deleteFrom("user_role").where((ur) => ur.tenant_id === p.tenantId),
+              q
+                .deleteFrom("user_role")
+                .where((ur) => ur.tenant_id === p.tenantId),
             { tenantId },
           );
           executeDelete(

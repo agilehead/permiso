@@ -51,10 +51,7 @@ export type PermisoClient = {
   }): Promise<Result<ConnectionPage<Tenant>>>;
   getTenantsByIds(ids: string[]): Promise<Result<Tenant[]>>;
   createTenant(input: CreateTenantInput): Promise<Result<Tenant>>;
-  updateTenant(
-    id: string,
-    input: UpdateTenantInput,
-  ): Promise<Result<Tenant>>;
+  updateTenant(id: string, input: UpdateTenantInput): Promise<Result<Tenant>>;
   deleteTenant(id: string, safetyKey?: string): Promise<Result<boolean>>;
   getTenantProperty(
     tenantId: string,
@@ -83,10 +80,7 @@ export type PermisoClient = {
     identityProviderUserId: string,
   ): Promise<Result<User[]>>;
   createUser(input: CreateUserInput): Promise<Result<User>>;
-  updateUser(
-    userId: string,
-    input: UpdateUserInput,
-  ): Promise<Result<User>>;
+  updateUser(userId: string, input: UpdateUserInput): Promise<Result<User>>;
   deleteUser(userId: string): Promise<Result<boolean>>;
   getUserProperty(
     userId: string,
@@ -98,18 +92,9 @@ export type PermisoClient = {
     value: unknown,
     hidden?: boolean,
   ): Promise<Result<Property>>;
-  deleteUserProperty(
-    userId: string,
-    name: string,
-  ): Promise<Result<boolean>>;
-  assignUserRole(
-    userId: string,
-    roleId: string,
-  ): Promise<Result<User>>;
-  unassignUserRole(
-    userId: string,
-    roleId: string,
-  ): Promise<Result<User>>;
+  deleteUserProperty(userId: string, name: string): Promise<Result<boolean>>;
+  assignUserRole(userId: string, roleId: string): Promise<Result<User>>;
+  unassignUserRole(userId: string, roleId: string): Promise<Result<User>>;
 
   // Roles
   getRole(roleId: string): Promise<Result<Role | null>>;
@@ -119,10 +104,7 @@ export type PermisoClient = {
   }): Promise<Result<ConnectionPage<Role>>>;
   getRolesByIds(ids: string[]): Promise<Result<Role[]>>;
   createRole(input: CreateRoleInput): Promise<Result<Role>>;
-  updateRole(
-    roleId: string,
-    input: UpdateRoleInput,
-  ): Promise<Result<Role>>;
+  updateRole(roleId: string, input: UpdateRoleInput): Promise<Result<Role>>;
   deleteRole(roleId: string): Promise<Result<boolean>>;
   getRoleProperty(
     roleId: string,
@@ -134,10 +116,7 @@ export type PermisoClient = {
     value: unknown,
     hidden?: boolean,
   ): Promise<Result<Property>>;
-  deleteRoleProperty(
-    roleId: string,
-    name: string,
-  ): Promise<Result<boolean>>;
+  deleteRoleProperty(roleId: string, name: string): Promise<Result<boolean>>;
 
   // Resources
   getResource(resourceId: string): Promise<Result<Resource | null>>;
@@ -228,8 +207,7 @@ export function createPermisoClient(inputConfig: PermisoConfig): PermisoClient {
     getUsersByIdentity: (provider, providerUserId) =>
       userApi.getUsersByIdentity(config, provider, providerUserId),
     createUser: (input) => userApi.createUser(config, input),
-    updateUser: (userId, input) =>
-      userApi.updateUser(config, userId, input),
+    updateUser: (userId, input) => userApi.updateUser(config, userId, input),
     deleteUser: (userId) => userApi.deleteUser(config, userId),
     getUserProperty: (userId, name) =>
       userApi.getUserProperty(config, userId, name),
@@ -247,8 +225,7 @@ export function createPermisoClient(inputConfig: PermisoConfig): PermisoClient {
     listRoles: (options) => roleApi.listRoles(config, options),
     getRolesByIds: (ids) => roleApi.getRolesByIds(config, ids),
     createRole: (input) => roleApi.createRole(config, input),
-    updateRole: (roleId, input) =>
-      roleApi.updateRole(config, roleId, input),
+    updateRole: (roleId, input) => roleApi.updateRole(config, roleId, input),
     deleteRole: (roleId) => roleApi.deleteRole(config, roleId),
     getRoleProperty: (roleId, name) =>
       roleApi.getRoleProperty(config, roleId, name),
@@ -258,8 +235,7 @@ export function createPermisoClient(inputConfig: PermisoConfig): PermisoClient {
       roleApi.deleteRoleProperty(config, roleId, name),
 
     // Resources
-    getResource: (resourceId) =>
-      resourceApi.getResource(config, resourceId),
+    getResource: (resourceId) => resourceApi.getResource(config, resourceId),
     listResources: (options) => resourceApi.listResources(config, options),
     getResourcesByIdPrefix: (idPrefix) =>
       resourceApi.getResourcesByIdPrefix(config, idPrefix),
@@ -302,10 +278,7 @@ export function createNoOpPermisoClient(logger?: Logger): PermisoClient {
     );
   };
 
-  const nullResult = <T>(
-    method: string,
-    data: T,
-  ): Promise<Result<T>> => {
+  const nullResult = <T>(method: string, data: T): Promise<Result<T>> => {
     warn(method);
     return Promise.resolve({ success: true as const, data });
   };
@@ -337,13 +310,11 @@ export function createNoOpPermisoClient(logger?: Logger): PermisoClient {
         pageInfo: { hasNextPage: false, hasPreviousPage: false },
       } as never),
     getUsersByIds: (_ids) => nullResult("getUsersByIds", [] as never),
-    getUsersByIdentity: () =>
-      nullResult("getUsersByIdentity", [] as never),
+    getUsersByIdentity: () => nullResult("getUsersByIdentity", [] as never),
     createUser: () => notConfigured("createUser"),
     updateUser: () => notConfigured("updateUser"),
     deleteUser: () => notConfigured("deleteUser"),
-    getUserProperty: (_userId, _name) =>
-      nullResult("getUserProperty", null),
+    getUserProperty: (_userId, _name) => nullResult("getUserProperty", null),
     setUserProperty: () => notConfigured("setUserProperty"),
     deleteUserProperty: () => notConfigured("deleteUserProperty"),
     assignUserRole: () => notConfigured("assignUserRole"),
@@ -361,8 +332,7 @@ export function createNoOpPermisoClient(logger?: Logger): PermisoClient {
     createRole: () => notConfigured("createRole"),
     updateRole: () => notConfigured("updateRole"),
     deleteRole: () => notConfigured("deleteRole"),
-    getRoleProperty: (_roleId, _name) =>
-      nullResult("getRoleProperty", null),
+    getRoleProperty: (_roleId, _name) => nullResult("getRoleProperty", null),
     setRoleProperty: () => notConfigured("setRoleProperty"),
     deleteRoleProperty: () => notConfigured("deleteRoleProperty"),
 

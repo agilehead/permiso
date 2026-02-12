@@ -180,7 +180,9 @@ export function createUserRepository(
           db,
           schema,
           (q, p: { id: string; tenant_id: string }) =>
-            q.from("user").where((u) => u.id === p.id && u.tenant_id === p.tenant_id),
+            q
+              .from("user")
+              .where((u) => u.id === p.id && u.tenant_id === p.tenant_id),
           { id: input.id, tenant_id: inputTenantId },
         );
 
@@ -213,7 +215,10 @@ export function createUserRepository(
               .where((u) => u.id === p.userId && u.tenant_id === p.tenantId),
           { userId, tenantId: inputTenantId },
         );
-        return { success: true, data: rows.length > 0 ? mapUserFromDb(rows[0]) : null };
+        return {
+          success: true,
+          data: rows.length > 0 ? mapUserFromDb(rows[0]) : null,
+        };
       } catch (error) {
         logger.error("Failed to get user", { error, userId });
         return { success: false, error: error as Error };
@@ -248,7 +253,10 @@ export function createUserRepository(
               ),
           { tenantId: inputTenantId, identityProvider, identityProviderUserId },
         );
-        return { success: true, data: rows.length > 0 ? mapUserFromDb(rows[0]) : null };
+        return {
+          success: true,
+          data: rows.length > 0 ? mapUserFromDb(rows[0]) : null,
+        };
       } catch (error) {
         logger.error("Failed to get user by identity", {
           error,
@@ -267,7 +275,9 @@ export function createUserRepository(
     ): Promise<Result<Connection<User>>> {
       try {
         // Count query using raw SQL
-        const hasIdentityProvider = filter?.identityProvider !== undefined && filter.identityProvider !== "";
+        const hasIdentityProvider =
+          filter?.identityProvider !== undefined &&
+          filter.identityProvider !== "";
         const countStmt = db.prepare(
           hasIdentityProvider
             ? `SELECT COUNT(*) as count FROM "user" WHERE tenant_id = @tenantId AND identity_provider = @identityProvider`
@@ -283,8 +293,10 @@ export function createUserRepository(
 
         // Main query - use raw SQL for complex queries
         const sortDir = pagination?.sortDirection === "DESC" ? "DESC" : "ASC";
-        const hasFirst = pagination?.first !== undefined && pagination.first !== 0;
-        const hasOffset = pagination?.offset !== undefined && pagination.offset !== 0;
+        const hasFirst =
+          pagination?.first !== undefined && pagination.first !== 0;
+        const hasOffset =
+          pagination?.offset !== undefined && pagination.offset !== 0;
         const stmt = db.prepare(
           `SELECT * FROM "user" WHERE tenant_id = @tenantId${
             hasIdentityProvider
@@ -314,9 +326,7 @@ export function createUserRepository(
             nodes: rows.map(mapUserFromDb),
             totalCount,
             pageInfo: {
-              hasNextPage: hasFirst
-                ? rows.length === pagination.first
-                : false,
+              hasNextPage: hasFirst ? rows.length === pagination.first : false,
               hasPreviousPage: false,
               startCursor: rows[0]?.id ?? null,
               endCursor: rows[rows.length - 1]?.id ?? null,
@@ -392,7 +402,10 @@ export function createUserRepository(
     },
 
     // eslint-disable-next-line @typescript-eslint/require-await -- Synchronous better-sqlite3 implements async interface
-    async delete(inputTenantId: string, userId: string): Promise<Result<boolean>> {
+    async delete(
+      inputTenantId: string,
+      userId: string,
+    ): Promise<Result<boolean>> {
       try {
         // Delete related data first
         executeDelete(
@@ -402,7 +415,8 @@ export function createUserRepository(
             q
               .deleteFrom("user_property")
               .where(
-                (up) => up.parent_id === p.userId && up.tenant_id === p.tenantId,
+                (up) =>
+                  up.parent_id === p.userId && up.tenant_id === p.tenantId,
               ),
           { userId, tenantId: inputTenantId },
         );
@@ -413,7 +427,9 @@ export function createUserRepository(
           (q, p: { userId: string; tenantId: string }) =>
             q
               .deleteFrom("user_role")
-              .where((ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId),
+              .where(
+                (ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId,
+              ),
           { userId, tenantId: inputTenantId },
         );
 
@@ -423,7 +439,9 @@ export function createUserRepository(
           (q, p: { userId: string; tenantId: string }) =>
             q
               .deleteFrom("user_permission")
-              .where((up) => up.user_id === p.userId && up.tenant_id === p.tenantId),
+              .where(
+                (up) => up.user_id === p.userId && up.tenant_id === p.tenantId,
+              ),
           { userId, tenantId: inputTenantId },
         );
 
@@ -527,7 +545,9 @@ export function createUserRepository(
           (q, p: { userId: string; tenantId: string }) =>
             q
               .from("user_role")
-              .where((ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId),
+              .where(
+                (ur) => ur.user_id === p.userId && ur.tenant_id === p.tenantId,
+              ),
           { userId, tenantId: inputTenantId },
         );
         return { success: true, data: rows.map((r) => r.role_id) };
@@ -550,7 +570,8 @@ export function createUserRepository(
             q
               .from("user_property")
               .where(
-                (up) => up.parent_id === p.userId && up.tenant_id === p.tenantId,
+                (up) =>
+                  up.parent_id === p.userId && up.tenant_id === p.tenantId,
               ),
           { userId, tenantId: inputTenantId },
         );

@@ -232,11 +232,7 @@ describe("Tenants API", () => {
       }
 
       // Get property
-      const getPropResult = await getTenantProperty(
-        config,
-        tenantId,
-        "config",
-      );
+      const getPropResult = await getTenantProperty(config, tenantId, "config");
       expect(getPropResult.success).to.be.true;
       if (getPropResult.success) {
         expect(getPropResult.data?.name).to.equal("config");

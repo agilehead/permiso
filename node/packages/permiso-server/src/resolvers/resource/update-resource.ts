@@ -6,7 +6,11 @@ export const updateResourceResolver = {
   Mutation: {
     updateResource: async (
       _: unknown,
-      args: { tenantId: string; resourceId: string; input: UpdateResourceInput },
+      args: {
+        tenantId: string;
+        resourceId: string;
+        input: UpdateResourceInput;
+      },
       context: DataContext,
     ) => {
       const result = await updateResource(context, args.resourceId, args.input);

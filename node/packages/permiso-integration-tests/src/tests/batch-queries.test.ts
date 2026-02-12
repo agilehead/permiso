@@ -1,6 +1,11 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
+import {
+  testDb,
+  rootClient,
+  createTenantClient,
+  truncateAllTables,
+} from "../index.js";
 
 describe("Batch Queries", () => {
   beforeEach(() => {
@@ -376,7 +381,9 @@ describe("Batch Queries", () => {
       });
 
       expect(result.data?.usersByIdentity).to.have.lengthOf(2);
-      const tenantIds = result.data?.usersByIdentity.map((u: any) => u.tenantId);
+      const tenantIds = result.data?.usersByIdentity.map(
+        (u: any) => u.tenantId,
+      );
       expect(tenantIds).to.include.members(["org-1", "org-2"]);
     });
 

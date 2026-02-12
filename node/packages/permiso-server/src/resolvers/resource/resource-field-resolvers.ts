@@ -5,11 +5,7 @@ import type { DataContext } from "../../domain/data-context.js";
 
 export const resourceFieldResolvers = {
   Resource: {
-    tenant: async (
-      parent: Resource,
-      _: unknown,
-      context: DataContext,
-    ) => {
+    tenant: async (parent: Resource, _: unknown, context: DataContext) => {
       const result = await getTenant(context, parent.tenantId);
       if (!result.success) {
         throw result.error;

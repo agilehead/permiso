@@ -11,7 +11,11 @@ export async function assignUserRole(
   roleId: string,
 ): Promise<Result<UserRole>> {
   try {
-    const result = await ctx.repos.user.assignRole(ctx.tenantId, userId, roleId);
+    const result = await ctx.repos.user.assignRole(
+      ctx.tenantId,
+      userId,
+      roleId,
+    );
     if (!result.success) {
       return { success: false, error: result.error };
     }

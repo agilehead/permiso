@@ -55,18 +55,16 @@ export async function listResources(
     pagination?: PaginationInput;
   },
 ): Promise<
-  Result<
-    {
-      nodes: Resource[];
-      totalCount: number;
-      pageInfo: {
-        hasNextPage: boolean;
-        hasPreviousPage: boolean;
-        startCursor?: string;
-        endCursor?: string;
-      };
-    }
-  >
+  Result<{
+    nodes: Resource[];
+    totalCount: number;
+    pageInfo: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      startCursor?: string;
+      endCursor?: string;
+    };
+  }>
 > {
   const query = `
     query ListResources($filter: ResourceFilter, $pagination: PaginationInput) {

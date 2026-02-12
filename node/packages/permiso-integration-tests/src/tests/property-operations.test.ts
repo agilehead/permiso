@@ -1,9 +1,16 @@
 import { expect } from "chai";
 import { gql } from "@apollo/client/core/index.js";
-import { testDb, rootClient, createTenantClient, truncateAllTables } from "../index.js";
+import {
+  testDb,
+  rootClient,
+  createTenantClient,
+  truncateAllTables,
+} from "../index.js";
 
 describe("Property Operations", () => {
-  let testTenantClientInstance: ReturnType<typeof createTenantClient> | undefined;
+  let testTenantClientInstance:
+    | ReturnType<typeof createTenantClient>
+    | undefined;
 
   const testTenantClient = () => {
     if (!testTenantClientInstance) {
@@ -75,12 +82,8 @@ describe("Property Operations", () => {
         });
 
         expect(result.data?.tenantProperty).to.not.be.null;
-        expect(result.data?.tenantProperty?.name).to.equal(
-          "existing_prop",
-        );
-        expect(result.data?.tenantProperty?.value).to.equal(
-          "initial_value",
-        );
+        expect(result.data?.tenantProperty?.name).to.equal("existing_prop");
+        expect(result.data?.tenantProperty?.value).to.equal("initial_value");
         expect(result.data?.tenantProperty?.hidden).to.be.false;
         expect(result.data?.tenantProperty?.createdAt).to.be.a("number");
       });
@@ -169,9 +172,7 @@ describe("Property Operations", () => {
           hidden: true,
         });
 
-        expect(result.data?.setTenantProperty?.value).to.equal(
-          "updated_value",
-        );
+        expect(result.data?.setTenantProperty?.value).to.equal("updated_value");
         expect(result.data?.setTenantProperty?.hidden).to.be.true;
 
         // Verify it was updated
@@ -277,16 +278,14 @@ describe("Property Operations", () => {
             },
           },
         });
-        expect(nestedResult.data?.setTenantProperty?.value).to.deep.equal(
-          {
-            level1: {
-              level2: {
-                level3: "deep",
-                array: [1, 2, 3],
-              },
+        expect(nestedResult.data?.setTenantProperty?.value).to.deep.equal({
+          level1: {
+            level2: {
+              level3: "deep",
+              array: [1, 2, 3],
             },
           },
-        );
+        });
       });
     });
 
@@ -633,9 +632,7 @@ describe("Property Operations", () => {
         value: largeObject,
       });
 
-      expect(result.data?.setTenantProperty?.value).to.deep.equal(
-        largeObject,
-      );
+      expect(result.data?.setTenantProperty?.value).to.deep.equal(largeObject);
     });
 
     it("should handle deeply nested JSON structures", async () => {
@@ -666,9 +663,7 @@ describe("Property Operations", () => {
         value: deepObject,
       });
 
-      expect(result.data?.setTenantProperty?.value).to.deep.equal(
-        deepObject,
-      );
+      expect(result.data?.setTenantProperty?.value).to.deep.equal(deepObject);
     });
 
     it("should handle special characters in property names", async () => {
@@ -737,9 +732,7 @@ describe("Property Operations", () => {
         name: "whitespace",
         value: "   ",
       });
-      expect(whitespaceResult.data?.setTenantProperty?.value).to.equal(
-        "   ",
-      );
+      expect(whitespaceResult.data?.setTenantProperty?.value).to.equal("   ");
     });
 
     it("should handle unicode and emoji in values", async () => {

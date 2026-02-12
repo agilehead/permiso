@@ -2,7 +2,7 @@ import type { ChildProcess } from "child_process";
 import { spawn } from "child_process";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
-import type { Logger} from "./test-logger.js";
+import type { Logger } from "./test-logger.js";
 import { testLogger } from "./test-logger.js";
 
 // Get the project root directory (5 levels up from this file)
@@ -15,7 +15,7 @@ export type TestServerOptions = {
   maxRetries?: number;
   retryDelay?: number;
   logger?: Logger;
-}
+};
 
 export class TestServer {
   private process: ChildProcess | null = null;
@@ -30,9 +30,7 @@ export class TestServer {
     // Use absolute path for data dir to avoid cwd issues
     const defaultDataDir = resolve(projectRoot, "data");
     this.dataDir =
-      options.dataDir ??
-      process.env.PERMISO_DATA_DIR ??
-      defaultDataDir;
+      options.dataDir ?? process.env.PERMISO_DATA_DIR ?? defaultDataDir;
     this.maxRetries = options.maxRetries ?? 30;
     this.retryDelay = options.retryDelay ?? 1000;
     this.logger = options.logger ?? testLogger;
@@ -42,10 +40,14 @@ export class TestServer {
     try {
       // Find process using the port
       const { execSync } = await import("child_process");
-      const pid = execSync(`lsof -ti:${this.port.toString()} || true`).toString().trim();
+      const pid = execSync(`lsof -ti:${this.port.toString()} || true`)
+        .toString()
+        .trim();
 
       if (pid !== "") {
-        this.logger.debug(`Killing process ${pid} using port ${this.port.toString()}`);
+        this.logger.debug(
+          `Killing process ${pid} using port ${this.port.toString()}`,
+        );
         execSync(`kill -9 ${pid}`);
         // Wait a bit for the process to die
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -118,7 +120,9 @@ export class TestServer {
 
       this.process.on("exit", (code) => {
         if (!serverStarted && code !== null && code !== 0) {
-          this.logger.error(`[SERVER EXIT] Server exited with code ${String(code)}`);
+          this.logger.error(
+            `[SERVER EXIT] Server exited with code ${String(code)}`,
+          );
           reject(new Error(`Server exited with code ${String(code)}`));
         }
       });
@@ -136,10 +140,13 @@ export class TestServer {
   private async waitForServer(): Promise<void> {
     for (let i = 0; i < this.maxRetries; i++) {
       try {
-        const response = await fetch(`http://localhost:${this.port.toString()}/graphql`, {
-          method: "GET",
-          headers: { Accept: "text/html" },
-        });
+        const response = await fetch(
+          `http://localhost:${this.port.toString()}/graphql`,
+          {
+            method: "GET",
+            headers: { Accept: "text/html" },
+          },
+        );
 
         if (response.ok) {
           return;
@@ -151,7 +158,9 @@ export class TestServer {
       await new Promise((resolve) => setTimeout(resolve, this.retryDelay));
     }
 
-    throw new Error(`Server failed to start after ${this.maxRetries.toString()} attempts`);
+    throw new Error(
+      `Server failed to start after ${this.maxRetries.toString()} attempts`,
+    );
   }
 
   async stop(): Promise<void> {

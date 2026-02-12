@@ -1,8 +1,4 @@
-export type {
-  PermisoConfig,
-  Logger,
-  Result,
-} from "./types.js";
+export type { PermisoConfig, Logger, Result } from "./types.js";
 export { success, failure } from "./types.js";
 
 export type {

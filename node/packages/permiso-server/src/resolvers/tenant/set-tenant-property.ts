@@ -5,7 +5,12 @@ export const setTenantPropertyResolver = {
   Mutation: {
     setTenantProperty: async (
       _: unknown,
-      args: { tenantId: string; name: string; value: unknown; hidden?: boolean },
+      args: {
+        tenantId: string;
+        name: string;
+        value: unknown;
+        hidden?: boolean;
+      },
       context: DataContext,
     ) => {
       const result = await setTenantProperty(

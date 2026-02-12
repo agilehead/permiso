@@ -61,18 +61,16 @@ export async function listTenants(
     pagination?: PaginationInput;
   },
 ): Promise<
-  Result<
-    {
-      nodes: Tenant[];
-      totalCount: number;
-      pageInfo: {
-        hasNextPage: boolean;
-        hasPreviousPage: boolean;
-        startCursor?: string;
-        endCursor?: string;
-      };
-    }
-  >
+  Result<{
+    nodes: Tenant[];
+    totalCount: number;
+    pageInfo: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      startCursor?: string;
+      endCursor?: string;
+    };
+  }>
 > {
   const query = `
     query ListTenants($filter: TenantFilter, $pagination: PaginationInput) {
